@@ -7,7 +7,7 @@ Write the canon (story bible, systems design, canon fact files, glossary) and on
 ## Inputs
 
 - `docs/REQUIREMENTS.md` with `## Lock` (phase 0). Premise may be "pending G1".
-- `docs/forge/agents.json`, governor armed.
+- `.forge/agents.json`, governor armed.
 - Examples of good output: Shorelight `docs/STORY_BIBLE.md`, `docs/WRITERS_GUIDE.md`, `docs/story/ch0_prologue.md` (map table, ASCII layout, flag table, sound notes), `tools/i18n/GLOSSARY.md`.
 
 ## Steps

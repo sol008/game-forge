@@ -15,7 +15,7 @@ Hard preconditions (checked by the lead before the first launch):
 
 ## Steps
 
-1. **Plan the wave** (lead). One work package per chapter (split a chapter > ~2,000 screenplay lines into two packages by map group, each with its own file). Register every package in `docs/forge/agents.json`: id, chapter, branch, worktree, log path, ETA.
+1. **Plan the wave** (lead). One work package per chapter (split a chapter > ~2,000 screenplay lines into two packages by map group, each with its own file). Register every package in `.forge/agents.json`: id, chapter, branch, worktree, log path, ETA.
 2. **Worktrees** (lead). `git worktree add ../wt/chN -b build/chN` per package. Exclusive namespace per builder:
    - `js/maps/chN_<slug>.js` (maps, quests, chapter-local data prefixed `cN_*`, `t_cN_*`);
    - `tools/test/chapters/chN.test.js`;
@@ -65,7 +65,7 @@ Hard preconditions (checked by the lead before the first launch):
 - `tools/test/chapters/chN.test.js` per chapter.
 - i18n stub entries per chapter (filled in phase 6).
 - Curated `screenshots/chN/` (lead copies chosen shots; raw shots stay in `$SCRATCH`).
-- Updated `docs/forge/agents.json`, `docs/forge/followups.md`.
+- Updated `.forge/agents.json`, `docs/forge/followups.md`.
 
 ## Exit gate
 

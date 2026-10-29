@@ -41,7 +41,7 @@ Give every registered object, character, creature, environment and battle view a
    - exclusive files (`js/r3d/<team>*.js`, `tools/r3d/<team>/`, `docs/r3d_reports/<team>*`); core bugs go in the report, never shimmed;
    - time budget, stop rule ("stop when the manifest is covered or at the deadline"), and "merged, stop" means stop pushing;
    - renders go through the team's own headless viewer; no performance or video claims without a GPU.
-5. **Register** (lead). Each session id and branch goes to `docs/forge/agents.json` and `docs/r3d_reports/TEAMS.txt`.
+5. **Register** (lead). Each session id and branch goes to `.forge/agents.json` and `docs/r3d_reports/TEAMS.txt`.
 6. **Monitor** (lead, each check-in). `git fetch`; per team: commits, last push time, manifest coverage. That is the status signal, not chat pings. 0 commits in 20 min → `get_session` status; blocked → fix the cause once (never a second "resume?" loop).
 7. **Merge early and often** (lead). Per team, as soon as a coherent batch lands:
    1. `git merge-tree --write-tree main r3d-<team>` clean;

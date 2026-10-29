@@ -25,7 +25,7 @@ Every displayed string exists in every language, uses the glossary's terms, and 
    - **term table**: every cast name, place, item, skill, stat, element, currency, the signature mechanic; one rendering each.
    Translators may add terms; renaming one goes through the lead.
 3. **Shared first** (1 local agent, `briefs/translator.md`). `<lang>_ui` and `<lang>_data`. Every chapter translator depends on these terms.
-4. **Cut units** (lead). One unit = one chapter dictionary; **split at ≤ 1,200 source lines** into `chN` / `chNb`; pair small chapters into one unit. Register each unit in `docs/forge/agents.json`.
+4. **Cut units** (lead). One unit = one chapter dictionary; **split at ≤ 1,200 source lines** into `chN` / `chNb`; pair small chapters into one unit. Register each unit in `.forge/agents.json`.
 5. **Translator fan-out** (~6 local agents, `briefs/translator.md`). CPU-light, so they **backfill** idle capacity alongside builders. Each:
    - own worktree, branch `i18n/<lang>-chN`, exclusive files: its dictionary files only;
    - reads the screenplay for context, the glossary, the bible's voice notes;

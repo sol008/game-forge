@@ -35,7 +35,7 @@ All steps: **lead only**, serial. No agents yet: nothing exists for them to work
 5. **Repo skeleton** (commit 1):
    - `.gitignore`: `*.log`, `dist/`, `node_modules/`, `tools/**/out/`, `*.tmp.*`, generated font data if it is rebuilt at package time;
    - `docs/REQUIREMENTS.md`, `docs/forge/env.md`, `docs/forge/cost.md` (the G0b table);
-   - empty `docs/forge/followups.md` (deferred fixes keyed by file owner) and `docs/forge/agents.json` (`[]`);
+   - empty `docs/forge/followups.md` (deferred fixes keyed by file owner) and `.forge/agents.json` (runtime, via `forge-tools/agents.sh`);
    - a two-line `README.md` (title, "under construction").
    Push. This proves the remote works.
 6. **Arm the governor** (`$FORGE/forge-tools/governor.sh`):
@@ -44,7 +44,7 @@ All steps: **lead only**, serial. No agents yet: nothing exists for them to work
    - self-test: run two dummy jobs with 1 slot and confirm they serialize.
    From now on **no agent launches a browser except through `governor.sh`**. Every brief says so.
 7. **Arm the registry and watchdog.**
-   - `forge-tools/status.sh` reads `docs/forge/agents.json` (id, task, branch, worktree, log, ETA, started) and prints one table.
+   - `forge-tools/status.sh` reads `.forge/agents.json` (id, task, branch, worktree, log, ETA, started) and prints one table.
    - Watchdog: no log growth or commits for 20 min → alert the lead; a test with no output for 90 s → kill and fail with the last step.
    - Logs and screenshots go to `$SCRATCH/<task>/`, never into the repo.
 8. **Arm the check-in loop.** `send_later` every report interval (default 15 min) with the prompt from `status_table.md`:
@@ -60,7 +60,7 @@ All steps: **lead only**, serial. No agents yet: nothing exists for them to work
 ## Outputs
 
 - `docs/REQUIREMENTS.md` (with `## Lock`, reference policy, priority order).
-- `docs/forge/env.md`, `docs/forge/cost.md`, `docs/forge/agents.json`, `docs/forge/followups.md`.
+- `docs/forge/env.md`, `docs/forge/cost.md`, `.forge/agents.json`, `docs/forge/followups.md`.
 - `.gitignore`, `README.md`.
 - A running `send_later` check-in; governor config in `$SCRATCH/forge/`.
 
