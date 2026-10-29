@@ -42,7 +42,7 @@ function forgeDir() {
 // Browsers must run inside governor.sh; nudge (not block) when they don't.
 function governorNote(tool) {
   if (!process.env.FORGE_GOVERNOR_SLOT && !process.env.FORGE_NO_GOVERNOR_WARN) {
-    process.stderr.write(`${tool}: note: not running under governor.sh; wrap browser jobs as \`governor.sh node ${tool} ...\`\n`);
+    process.stderr.write(`${tool}: note: not running under governor.sh; wrap browser jobs as \`tools/forge/governor.sh -- node tools/forge/${tool} ...\`\n`);
   }
 }
 

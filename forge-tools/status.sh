@@ -73,7 +73,7 @@ rows=""
 sig=""
 stalled=""
 nact=0
-while IFS="$TAB" read -r id task st eta ep br lg started _upd note; do
+while IFS="$TAB" read -r id task st eta ep br lg started _upd note _wt _ch; do
   [ -n "$id" ] || continue
   active=1
   case "$st" in done | failed | stopped | merged | cancelled) active=0 ;; esac

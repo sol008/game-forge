@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 'use strict';
-const USAGE = `release_gate.js: boot a release zip the way a player would, in every render mode.
+const USAGE = `release_gate.js: boot a release zip (or a hosted build) the way a player would, in every mode.
 
-  node release_gate.js <zip> [--modes 2d,3d] [--out DIR] [--entry index.html]
+  node release_gate.js <zip> | --url URL  [--modes 2d,3d] [--out DIR] [--entry index.html]
        [--settings-key KEY --settings MODE=JSON ...] [--query MODE=QS ...]
        [--wait MS] [--press KEYS] [--eval JS ...] [--assert JS ...] [--ignore REGEX ...]
        [--viewport 1280x720] [--timeout MS] [--allow-net] [--keep] [--browser-arg ARG ...]
@@ -14,11 +14,15 @@ A mode is selected generically:
   --query MODE=QS          append ?QS to the URL for that mode           (e.g. 3d=r3lite)
   --settings MODE=JSON     merge JSON into localStorage[--settings-key] before page scripts
                            run (e.g. 3d='{"render3d":true}'); MODE "*" applies to all modes
+Hosted builds: --url URL replaces the zip. Each mode loads URL (with its --query merged into
+the URL's query string); nothing is unzipped and --entry is ignored. Requests to the URL's own
+origin are allowed; any other origin is still an error unless --allow-net.
 Errors (any -> exit 1): uncaught page errors, console.error, failed requests (missing files),
-network requests (the build must run offline; --allow-net to permit), page crashes, failed
---assert expressions, a missing entry. --ignore drops matching messages.
+HTTP responses >= 400, network requests (the build must run offline, or same-origin only with
+--url; --allow-net to permit), page crashes, failed --assert expressions, a missing entry.
+--ignore drops matching messages.
 Prints one JSON report on stdout. Exit 0 pass, 1 errors, 2 usage/setup problem.
-Run under the governor: governor.sh node release_gate.js ...`;
+Run under the governor: tools/forge/governor.sh -- node tools/forge/release_gate.js ...`;
 
 const fs = require('fs');
 const os = require('os');
@@ -63,6 +67,18 @@ function findEntry(root, entry, files) {
   return hits.length ? path.join(root, hits[0]) : null;
 }
 
+// ws(s) to the page's own host counts as same origin
+function originOf(u) {
+  try { const x = new URL(u); return x.origin.replace(/^ws(s?):/, 'http$1:'); } catch (e) { return null; }
+}
+
+function withQuery(base, q) { // keeps q verbatim (a bare flag like "r3lite" stays bare)
+  if (!q) return base;
+  const i = base.indexOf('#');
+  const [head, hash] = i < 0 ? [base, ''] : [base.slice(0, i), base.slice(i)];
+  return head + (head.includes('?') ? '&' : '?') + q.replace(/^[?&]/, '') + hash;
+}
+
 function perMode(list, what) { // ["3d=r3lite", "*={...}"] -> {mode: value}
   const m = {};
   for (const s of list || []) {
@@ -81,10 +97,19 @@ function perMode(list, what) { // ["3d=r3lite", "*={...}"] -> {mode: value}
       multi: ['settings', 'query', 'eval', 'assert', 'ignore', 'browser-arg'],
     });
   } catch (e) { die(e.message); }
-  if (a.help || a._.length !== 1) { process.stderr.write(USAGE + '\n'); process.exit(a.help ? 0 : 2); }
+  const hosted = a.url !== undefined;
+  if (a.help || a._.length !== (hosted ? 0 : 1)) {
+    if (hosted && a._.length) process.stderr.write('release_gate: give a zip or --url, not both\n');
+    process.stderr.write(USAGE + '\n'); process.exit(a.help ? 0 : 2);
+  }
 
-  const zip = path.resolve(a._[0]);
-  if (!fs.existsSync(zip)) die(`no such zip: ${zip}`);
+  let zip = null, siteOrigin = null;
+  if (hosted) {
+    try { const u = new URL(a.url); if (!/^https?:$/.test(u.protocol)) throw new Error(); siteOrigin = u.origin; } catch (e) { die(`--url must be an http(s) URL, got: ${a.url}`); }
+  } else {
+    zip = path.resolve(a._[0]);
+    if (!fs.existsSync(zip)) die(`no such zip: ${zip}`);
+  }
   const modes = (a.modes || 'default').split(',').map((s) => s.trim()).filter(Boolean);
   const out = path.resolve(a.out || path.join(L.forgeDir(), 'release'));
   const entryName = a.entry || 'index.html';
@@ -105,25 +130,30 @@ function perMode(list, what) { // ["3d=r3lite", "*={...}"] -> {mode: value}
   L.governorNote('release_gate.js');
   fs.mkdirSync(out, { recursive: true });
 
-  const report = { zip, zipBytes: fs.statSync(zip).size, ok: false, unzipDir: null, entry: null,
-    files: 0, warnings: [], errors: [], modes: [] };
-  const tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-release-'));
-  const root = path.join(tmpBase, 'My Games 遊戲 測試');
-  fs.mkdirSync(root, { recursive: true });
-  report.unzipDir = root;
+  const report = hosted
+    ? { url: a.url, ok: false, warnings: [], errors: [], modes: [] }
+    : { zip, zipBytes: fs.statSync(zip).size, ok: false, unzipDir: null, entry: null,
+      files: 0, warnings: [], errors: [], modes: [] };
+  let tmpBase = null, root = null, entry = null;
 
   let browser;
   try {
-    report.unzipTool = unzip(zip, root);
-    const files = walk(root);
-    report.files = files.filter((f) => !f.endsWith('/')).length;
-    for (const [re, label] of HYGIENE) {
-      const hit = files.filter((f) => re.test(f));
-      if (hit.length) report.warnings.push(`zip contains ${label}: ${hit.slice(0, 3).join(', ')}${hit.length > 3 ? ` (+${hit.length - 3})` : ''}`);
+    if (!hosted) {
+      tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-release-'));
+      root = path.join(tmpBase, 'My Games 遊戲 測試');
+      fs.mkdirSync(root, { recursive: true });
+      report.unzipDir = root;
+      report.unzipTool = unzip(zip, root);
+      const files = walk(root);
+      report.files = files.filter((f) => !f.endsWith('/')).length;
+      for (const [re, label] of HYGIENE) {
+        const hit = files.filter((f) => re.test(f));
+        if (hit.length) report.warnings.push(`zip contains ${label}: ${hit.slice(0, 3).join(', ')}${hit.length > 3 ? ` (+${hit.length - 3})` : ''}`);
+      }
+      entry = findEntry(root, entryName, files);
+      if (!entry) { report.errors.push(`entry ${entryName} not found in zip`); throw new Error('no entry'); }
+      report.entry = path.relative(root, entry);
     }
-    const entry = findEntry(root, entryName, files);
-    if (!entry) { report.errors.push(`entry ${entryName} not found in zip`); throw new Error('no entry'); }
-    report.entry = path.relative(root, entry);
 
     browser = await chromium.launch({ args: ['--enable-unsafe-swiftshader', ...(a['browser-arg'] || [])] });
     for (const mode of modes) {
@@ -135,9 +165,10 @@ function perMode(list, what) { // ["3d=r3lite", "*={...}"] -> {mode: value}
       const blocked = new Set();
       await ctx.route(/^(https?|wss?):/i, (route) => {
         const u = route.request().url();
-        if (a['allow-net']) return route.continue();
+        if (a['allow-net'] || (hosted && originOf(u) === siteOrigin)) return route.continue();
         blocked.add(u); r.blockedNet.push(u);
-        err(`network request (build must run offline): ${u}`);
+        err(hosted ? `network request to another origin (only ${siteOrigin} is allowed): ${u}`
+          : `network request (build must run offline): ${u}`);
         return route.abort('blockedbyclient');
       });
       page.on('pageerror', (e) => err(`pageerror: ${e.message}`));
@@ -145,14 +176,19 @@ function perMode(list, what) { // ["3d=r3lite", "*={...}"] -> {mode: value}
         // "Failed to load resource" duplicates requestfailed (which names the file), so skip it
         if (m.type() === 'error' && !/^Failed to load resource:/.test(m.text())) err(`console.error: ${m.text()}`);
       });
-      const rootHref = pathToFileURL(root).href;
+      const rootHref = hosted ? siteOrigin : pathToFileURL(root).href;
+      const shownUrl = (u) => {
+        let shown = u.startsWith(rootHref) ? (hosted ? '<site>' : '<zip>') + u.slice(rootHref.length) : u;
+        try { shown = decodeURI(shown); } catch (e) { /* keep encoded */ }
+        return shown;
+      };
       page.on('requestfailed', (q) => {
         const u = q.url();
         if (blocked.has(u)) return;
-        let shown = u.startsWith(rootHref) ? '<zip>' + u.slice(rootHref.length) : u;
-        try { shown = decodeURI(shown); } catch (e) { /* keep encoded */ }
-        err(`requestfailed: ${shown} (${q.failure() && q.failure().errorText})`);
+        err(`requestfailed: ${shownUrl(u)} (${q.failure() && q.failure().errorText})`);
       });
+      // over http a missing file is a 404 response, not a failed request
+      page.on('response', (res) => { if (res.status() >= 400) err(`http ${res.status()}: ${shownUrl(res.url())}`); });
       page.on('crash', () => err('page crashed'));
 
       const st = settings[mode] || settings['*'];
@@ -164,7 +200,7 @@ function perMode(list, what) { // ["3d=r3lite", "*={...}"] -> {mode: value}
         }, [a['settings-key'], st]);
       }
       const q = queries[mode] !== undefined ? queries[mode] : queries['*'];
-      r.url = pathToFileURL(entry).href + (q ? '?' + q.replace(/^\?/, '') : '');
+      r.url = hosted ? withQuery(a.url, q) : pathToFileURL(entry).href + (q ? '?' + q.replace(/^\?/, '') : '');
       try {
         await page.goto(r.url, { waitUntil: 'load', timeout });
         await page.waitForTimeout(waitMs);
@@ -193,8 +229,8 @@ function perMode(list, what) { // ["3d=r3lite", "*={...}"] -> {mode: value}
     if (e.message !== 'no entry') report.errors.push(`setup: ${e.message}`);
   } finally {
     if (browser) await browser.close().catch(() => {});
-    if (!a.keep) fs.rmSync(tmpBase, { recursive: true, force: true });
-    else report.kept = tmpBase;
+    if (tmpBase && !a.keep) fs.rmSync(tmpBase, { recursive: true, force: true });
+    else if (tmpBase) report.kept = tmpBase;
   }
   report.ok = report.errors.length === 0 && report.modes.length === modes.length && report.modes.every((m) => m.ok);
   process.stdout.write(JSON.stringify(report, null, 2) + '\n');
