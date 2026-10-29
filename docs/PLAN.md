@@ -219,7 +219,7 @@ Times are for a Shorelight-size game on a 4-CPU container plus cloud overflow. P
 | 9 | **Polish**: key emotional scenes, signature music (previews to you, G3), face and likeness pass, 3D performance (instanced batching on by default) | 3–4 agents | Draw-call budget; loop seams OK; loudness within the band | 1.5 h (overlaps 8) |
 | 10 | **Docs**: guide generated from data, with **every map annotated** (exits, NPCs, clue tiles, chests), every minigame documented (scoring, best answers, randomness), charts; PLAYING.md; RELEASE_NOTES; **VERIFICATION.md** (what the tests prove and what they don't) | 3 agents | Guide build: 0 missing images, 0 unobtainable items, every quest step has a pointer | 1.5 h (overlaps 8–9) |
 | 11 | **Freeze and release**: stop and drain *all* agents, merge, regenerate derived assets (font subset, guide), package, unzip into a CJK path with spaces, boot in 2D and 3D, send the zip | Lead | Release-gate script green | 15 min |
-| 12 | **Playtest loop (G4)**: you play and paste the Play Stats report and notes; triage → fix in worktrees → **every bug becomes a validator rule or test** → auto-ship the new zip | Lead + helpers | Regression test added per bug | ongoing |
+| 12 | **Playtest loop (G4)**: you play and paste the Play Stats report and notes; triage → fix in worktrees → **every bug becomes a validator rule or test**, and its general lesson is committed to game-forge → new zip at the next milestone | Lead + helpers | Regression test added per bug | ongoing |
 
 **Expected total:** about 12–16 h of wall clock to the first playable zip. Shorelight took about 13 h to v1.0, but needed about 45 avoidable interventions. Then the playtest loop runs.
 
@@ -360,7 +360,7 @@ Using it for a new game: start a session with **`sol008/game-forge` + the new ga
 | 3 | Forge tools | Governor, status, watchdog, gates and screenshot harness, made generic and tested on Shorelight itself (e.g. the release gate must pass on Shorelight's zip) | 1 h |
 | 4 | Self-review | A fresh agent with **no** context reads only `game-forge` and lists what is ambiguous or missing for building a new game; fix the gaps | 30 min |
 | 5 | **Mini dry run** | New session: game-forge + a new empty private repo. Run intake (multiple choice) → cost estimate → build → milestone zips. Count your touches, hours and spend | 4–8 h |
-| 6 | Retro | Every surprise in the dry run becomes a rule or tool fix in game-forge; then you decide on the full-size run | 30 min |
+| 6 | Retro | Every surprise in the dry run becomes a rule or tool fix, committed straight to game-forge main (as decided); then you decide on the full-size run | 30 min |
 
 ---
 
@@ -384,6 +384,10 @@ Using it for a new game: start a session with **`sol008/game-forge` + the new ga
 | Taste review | Non-blocking previews |
 | Languages / render mode / platform | Always asked at intake (no default) |
 | Shorelight | Keep fixing your playtest reports; each fix also becomes a forge rule |
+| Blueprint depth | Design docs + short illustrative code sketches; no Shorelight files copied |
+| Self-improvement | After each game, the forge **commits new lessons and rules straight to game-forge main** |
+| Strategy guide | **Always** a default deliverable (generated from data, annotated maps, minigames explained) |
+| Start | Build the forge **after you approve this plan** |
 | testProject | Delete the game branches. **Blocked:** the session's git proxy refuses branch deletion (403), so delete them on GitHub's branches page |
 
-**Still open:** see the next question round.
+**Still open:** your review of this plan. Send notes, or say go.
