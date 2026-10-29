@@ -1,6 +1,6 @@
 # game-forge: plan for building a full game from requirements with minimal handholding
 
-Status: **DRAFT v2.** Updated with your answers to 5 rounds of multiple-choice questions; the decisions are recorded in §12. Nothing gets built until this plan is approved.
+Status: **DRAFT v2.** Updated with your answers to 5 rounds of multiple-choice questions; the decisions are recorded in §12. Nothing gets built until this plan is approved. **v3** adds the cold-review fixes (§13).
 Evidence base, in the forge scratch notes:
 - all 76 user messages from the Shorelight session;
 - a condensed timeline of the 2-day build (2,364 events), mined in 5 slices for phases, decisions, problems and handholding;
@@ -221,7 +221,7 @@ Times are for a Shorelight-size game on a 4-CPU container plus cloud overflow. P
 | 11 | **Freeze and release**: stop and drain *all* agents, merge, regenerate derived assets (font subset, guide), package, unzip into a CJK path with spaces, boot in 2D and 3D, send the zip | Lead | Release-gate script green | 15 min |
 | 12 | **Playtest loop (G4)**: you play and paste the Play Stats report and notes; triage → fix in worktrees → **every bug becomes a validator rule or test**, and its general lesson is committed to game-forge → new zip at the next milestone | Lead + helpers | Regression test added per bug | ongoing |
 
-**Expected total:** about 12–16 h of wall clock to the first playable zip. Shorelight took about 13 h to v1.0, but needed about 45 avoidable interventions. Then the playtest loop runs.
+**Expected total:** about 13–16 h of wall clock to the first playable zip; a mini game (2 chapters) about 4–8 h (§11). Shorelight took about 13 h to v1.0 (about 2 days including the playtest loop), but needed about 45 avoidable interventions. Then the playtest loop runs.
 
 ---
 
@@ -341,8 +341,9 @@ game-forge/
 │  ├─ lessons.md                    §1 and §7, with Shorelight examples
 │  └─ status_table.md               check-in format
 ├─ blueprint/                       §9 engine and QA-tool design docs
-├─ forge-tools/                     governor.sh, status.sh, agents registry, watchdog, merge_gate.sh,
-│                                    release_gate.sh, shoot.js (screenshot harness), cost_estimate.md
+├─ forge-tools/                     governor.sh, status.sh, agents.sh (registry), watchdog.sh, merge_gate.sh,
+│                                    release_gate.js, shoot.js (screenshot harness), cost_estimate.md;
+│                                    copied into each game repo as tools/forge/ at phase 0
 ├─ research/                        evidence behind this plan (timeline mining, repo survey, user messages)
 └─ docs/PLAN.md                     this file
 ```
@@ -391,3 +392,17 @@ Using it for a new game: start a session with **`sol008/game-forge` + the new ga
 | testProject | Delete the game branches. **Blocked:** the session's git proxy refuses branch deletion (403), so delete them on GitHub's branches page |
 
 **Still open:** your review of this plan. Send notes, or say go.
+
+---
+
+## 13. v3: cold-review fixes
+
+A cold review simulated two games (a 2-chapter zh+en 3D RPG; an English-only 2D puzzle game hosted on the web). The fixes, as decided:
+- **Tools in the game repo.** Phase 0 copies `forge-tools/` to `tools/forge/` (sha in `docs/forge/env.md`), so cloud sessions have them; `FORGE`, `SCRATCH` and the tool-availability fallbacks (no AskUserQuestion → plain-text options; no `send_later` → `/loop 15m`; no `create_session` → frugal) are recorded there. `docs/forge/AGENTS.md` snapshots the runtime registry.
+- **Release gate** is `tools/forge/release_gate.js` (one mode per render × language; `--url` for hosted builds). Intake asks a **hosting target** for hosted web games.
+- **Intake** adds "Presentation and deliverables" (art style for 2D and 3D, music style, guide language, puzzle policy), pick mode and the ship-without-you deadline. G0b quotes cloud $ and local agent-hours separately.
+- **Gates.** G2 auto-picks the recommendations after 2 h (`[default]`, overridable until phase 11). Only the Release milestone drains all agents. The screenplay lint exists before writers start. i18n gates on 0 missing keys.
+- **Missing builders.** Phase 2 writes `extract.js`, `package.sh`, `build_font.py` and a `render_music.js` stub; phase 3 makes the 2D art kits.
+- **Genre-neutral.** No combat → `tools/sim/solver.js` replaces the boss and economy sims; battle-only checks are skipped.
+- **One name each** for flags (`chN_*`), data ids (`cN_*`), maps, derived collectible ids, canon files (`docs/canon/*.json`), scene cues (`<!-- cue: -->` → `cues.json` → `spec_conformance.js`), puzzle tags (`[PUZZLE-LANG]`, `// i18n:puzzle`), glossary (`GLOSSARY.md`) and simulators (`tools/sim/*.js`).
+- **No access to `sol008`.** Shorelight unreachable → clean room; lesson push denied → `docs/forge/lessons_for_forge.md`.

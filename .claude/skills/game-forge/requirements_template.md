@@ -16,9 +16,15 @@
 - Content limits:
 
 ## Required technical choices
-- Languages: original `{{lang}}`; translations `{{langs}}`; puzzle-translation policy
-- Render mode: `2D | 3D + 2D fallback | 3D only`; camera; art style; resolution
-- Platform: `offline zip (Mac + Chrome) | hosted web | Windows | …`; launcher
+- Languages: original `{{lang}}`; translations `{{langs}}`
+- Render mode: `2D | 3D + 2D fallback | 3D only`; camera; resolution
+- Platform: `offline zip (Mac + Chrome) | hosted web | Windows | …`; launcher; zip-size budget
+- Hosting target (hosted web only): `GitHub Pages from a separate public deploy repo {{owner/name-site}} | Netlify | itch.io (uploaded by the user) | zip only`
+
+## Presentation
+- Art style (2D and 3D): `{{art_style}}`
+- Music style; signature motif:
+- Puzzle-translation policy: `re-author` [default] `| keep + gloss | lead decides per puzzle`
 
 ## Setting
 - Era and place:
@@ -57,13 +63,15 @@
 
 ## Deliverables
 - Game zip; PLAYING.md; RELEASE_NOTES.md; VERIFICATION.md
-- Strategy guide: **always** (language: `{{guide_lang}}`)
+- Strategy guide: **always** (language: `{{guide_lang}}`, default the original; charts: those whose data exists)
 - Screenshots folder
 
 ## Process
 - Pace: `balanced` [default]; reports: `15 min`; zips: `phase milestones`; taste review: `non-blocking`
-- Budget cap: `{{none | $X}}` (set at G0b after the estimate)
-- Deadline / priority order if something must give:
+- Pick mode: `ask, auto-pick recommended after 2 h` [default] `| auto-recommend`
+- Budget cap: `{{none | $X}}` on cloud $ + local agent-hours × L (set at G0b after the estimate)
+- Ship-without-you deadline:
+- Priority order if something must give: (default: scope gives before quality)
 
 ## Engine policy
 - Similarity to Shorelight: `similar | different`, because …

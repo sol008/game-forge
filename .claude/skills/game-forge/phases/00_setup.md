@@ -8,7 +8,7 @@ Turn the intake answers into a locked, committed `docs/REQUIREMENTS.md`, a priva
 
 - Intake done (`intake.md`). G0 and G0b answered: required fields (languages, render mode, platform), budget/cap answer, private repo `owner/name`.
 - A draft `docs/REQUIREMENTS.md` (from `requirements_template.md`), not yet committed.
-- The game-forge checkout (`$FORGE`) with `forge-tools/`.
+- The game-forge checkout (`$FORGE`) with `forge-tools/`. Step 5 copies it into the game repo; after that, everyone calls `tools/forge/<tool>`.
 
 ## Steps
 
@@ -21,57 +21,72 @@ All steps: **lead only**, serial. No agents yet: nothing exists for them to work
    - Copy the `owner/name` from tool output, never retype it.
 2. **Working directory.** Clone to a neutral path, e.g. `~/game`, not a title-based folder. Title and slug live only in `CONFIG` and `REQUIREMENTS.md`, so a rename never moves files.
 3. **Probe the environment** and write `docs/forge/env.md`:
+   - **paths**: `FORGE=<game-forge checkout>` (lead only); `SCRATCH=<scratchpad dir>/<slug>`; `FORGE_DIR` left at the tools' default (the main checkout's `.forge/`, gitignored, runtime only). Every later `$FORGE`/`$SCRATCH` means these values;
    - `nproc`, `free -g`, disk; GPU present? (none means SwiftShader: no video or performance claims, and 3D tests need a lite mode);
    - `node -v`, Playwright browsers path, `python3 -c 'import fontTools'`;
    - CJK or other script fonts installed? Font source reachable (Google Fonts or a vendored copy)?
-   - npm registry reachable (needed only for one-time vendoring such as a 3D library bundle).
+   - npm registry reachable (needed only for one-time vendoring such as a 3D library bundle);
+   - `gh repo view sol008/Shorelight` (reference reachable?) and push access to `sol008/game-forge`;
+   - **tool availability**, one line each, with the fallback in use:
+
+     | Tool | Missing → fallback |
+     |---|---|
+     | AskUserQuestion | same lettered options in plain text (`intake.md`) |
+     | `send_later` / `list_triggers` | `/loop 15m` with the check-in prompt |
+     | `create_session` / `get_session` | pace `frugal`: no cloud; heavy work runs local and serial |
+     | Shorelight reachable | no → `similar, reference unavailable → clean room` |
+     | `sol008/game-forge` push | no → lessons go to `docs/forge/lessons_for_forge.md` |
    Leave existing files alone; never `git rm` what you did not create.
 4. **Lock the requirements.** Add a `## Lock` section to `docs/REQUIREMENTS.md`:
    - locked fields: premise (or "pending G1"), setting and route scope, title pair, slug, cast roster, render mode, languages, platform, chapter count;
-   - `lock: v1 <sha256 of the file, 12 chars>`;
+   - `lock: v1 <12 chars>`: the sha256 of `REQUIREMENTS.md` with the `lock:` line removed (`grep -v 'lock: v' docs/REQUIREMENTS.md | sha256sum | cut -c1-12`);
    - the **engine reference policy** (similar → may read `sol008/Shorelight`, write fresh; different → clean room, `blueprint/` only) and one line on why;
-   - the **priority order** if something must give, and the "ship without you" deadline.
+   - the **priority order** if something must give, and the "ship without you" deadline (both from intake round 8).
    A locked field changes only through a **change order** (step 9).
 5. **Repo skeleton** (commit 1):
    - `.gitignore`: `*.log`, `dist/`, `node_modules/`, `tools/**/out/`, `*.tmp.*`, generated font data if it is rebuilt at package time;
+   - **forge tools**: `cp -R "$FORGE/forge-tools/." tools/forge/`; write the game-forge sha (`git -C "$FORGE" rev-parse --short HEAD`) into `docs/forge/env.md`. Cloud child sessions check out only the game repo, so this copy is how they get the tools. Re-copy only as a deliberate commit ("forge tools → <sha>");
    - `docs/REQUIREMENTS.md`, `docs/forge/env.md`, `docs/forge/cost.md` (the G0b table);
-   - empty `docs/forge/followups.md` (deferred fixes keyed by file owner) and `.forge/agents.json` (runtime, via `forge-tools/agents.sh`);
+   - empty `docs/forge/followups.md` (deferred fixes keyed by file owner) and `docs/forge/AGENTS.md` (a snapshot of `tools/forge/agents.sh list`, re-committed at each check-in). The live registry `.forge/agents.json` is runtime state in `$FORGE_DIR` and is never committed;
    - a two-line `README.md` (title, "under construction").
    Push. This proves the remote works.
-6. **Arm the governor** (`$FORGE/forge-tools/governor.sh`):
-   - browser slots = `nproc − 1` (minimum 1); load target = cores − 0.5;
-   - priority lane for user-reported bugs; max hold time per job; config re-read on every poll; waits > 5 min reported;
-   - self-test: run two dummy jobs with 1 slot and confirm they serialize.
-   From now on **no agent launches a browser except through `governor.sh`**. Every brief says so.
+6. **Arm the governor** (`tools/forge/governor.sh [--prio] -- <cmd...>`):
+   - browser slots = `nproc − 1` (minimum 1; `FORGE_SLOTS` or `--set-slots`); load target = cores − 0.5;
+   - priority lane (`--prio`) for user-reported bugs; max hold time per job (`--max-hold`, default 1800 s); config re-read on every poll; waits > 5 min logged to `$FORGE_DIR/queue.log`;
+   - self-test: `time (FORGE_SLOTS=1 tools/forge/governor.sh -- sleep 2 & FORGE_SLOTS=1 tools/forge/governor.sh -- sleep 2; wait)` takes ≥ 4 s.
+   From now on **no agent launches a browser except through `tools/forge/governor.sh`**. Every brief says so.
 7. **Arm the registry and watchdog.**
-   - `forge-tools/status.sh` reads `.forge/agents.json` (id, task, branch, worktree, log, ETA, started) and prints one table.
-   - Watchdog: no log growth or commits for 20 min → alert the lead; a test with no output for 90 s → kill and fail with the last step.
+   - `tools/forge/agents.sh add <id> <task> <branch> <log> [eta]` at every launch; put the worktree and chapter in `agents.sh set <id> note "<worktree> chN"`. Stopping an agent: `agents.sh done <id> stopped` with note "drained".
+   - `tools/forge/status.sh` prints one table from the registry (exit 3 = an agent is stalled).
+   - Watchdog: no log growth or commits for 20 min → alert the lead (`status.sh`); a test with no output for 90 s → `tools/forge/watchdog.sh <log> 90 -- <cmd>` kills it and prints the last step.
    - Logs and screenshots go to `$SCRATCH/<task>/`, never into the repo.
-8. **Arm the check-in loop.** `send_later` every report interval (default 15 min) with the prompt from `status_table.md`:
-   check agents and cloud sessions → post **one** table (state, ETA, load, spend, blockers) → commit `docs/forge/*` → push → re-arm. Silent when nothing changed.
+8. **Arm the check-in loop.** `send_later` every report interval (default 15 min) with the prompt from `status_table.md`; no `send_later` → `/loop 15m` with the same prompt:
+   check agents and cloud sessions → post **one** table (state, ETA, load, spend, blockers) → snapshot `docs/forge/AGENTS.md`, commit `docs/forge/*` → push → re-arm. Silent when nothing changed.
 9. **Change orders** (rule for the rest of the build). When the user changes a locked field after fan-out:
    1. list running agents (an interrupt may have killed some) and stop the affected ones;
    2. bump `lock: v2`, write the delta in `REQUIREMENTS.md § Changes`;
    3. send **one** standard change brief to every surviving agent; propagate cuts everywhere without asking;
    4. report the cost of the change in the next status table.
    Ambiguous additions (new cast, new reference photos) default to **additive**; confirm in the same reply that discloses it.
-10. **Worktree convention.** One worktree per agent: `git worktree add ../wt/<task> -b <area>/<task>`. Agents commit only their own files on their own branch; the lead merges green branches with `forge-tools/merge_gate.sh`. No blanket `git add -A`, no "WIP snapshot" commits on the lead's tree.
+10. **Worktree convention.** One worktree per agent: `git worktree add ../wt/<task> -b <area>/<task>`. Agents commit only their own files on their own branch; the lead merges green branches with `tools/forge/merge_gate.sh`. No blanket `git add -A`, no "WIP snapshot" commits on the lead's tree.
 
 ## Outputs
 
 - `docs/REQUIREMENTS.md` (with `## Lock`, reference policy, priority order).
-- `docs/forge/env.md`, `docs/forge/cost.md`, `.forge/agents.json`, `docs/forge/followups.md`.
+- `docs/forge/env.md` (FORGE, SCRATCH, forge sha, probes, tool availability and fallbacks), `docs/forge/cost.md`, `docs/forge/followups.md`, `docs/forge/AGENTS.md`.
+- `tools/forge/` (copy of `forge-tools/`).
 - `.gitignore`, `README.md`.
-- A running `send_later` check-in; governor config in `$SCRATCH/forge/`.
+- A running check-in (`send_later` or `/loop 15m`); governor config and the live registry in `$FORGE_DIR`.
 
 ## Exit gate
 
 Automated:
 - [ ] `git push` to the private remote succeeds; `gh api … --jq .private` is `true`.
 - [ ] `REQUIREMENTS.md` lint: no `TBD` in required fields (languages, render mode, platform, repo); `## Lock` present with a hash.
-- [ ] `governor.sh` self-test serializes 2 jobs on 1 slot.
-- [ ] `status.sh` prints a table (empty registry is fine).
-- [ ] The check-in trigger exists (`list_triggers`).
+- [ ] `tools/forge/` exists and `env.md` records the forge sha, `FORGE`, `SCRATCH` and the tool-availability table.
+- [ ] `tools/forge/governor.sh` self-test serializes 2 jobs on 1 slot (≥ 4 s).
+- [ ] `tools/forge/status.sh` prints a table (empty registry is fine).
+- [ ] The check-in exists (`list_triggers`, or the `/loop` is running).
 
 Human: **G0** (hard block: requirements and repo) and **G0b** (cap question; default no cap). Both happen during intake; this phase never asks anything new.
 
