@@ -18,7 +18,7 @@ These rules exist because of Shorelight:
   | balanced | up to the governor limit | only for heavy 3D asset teams and the QA walkthrough wave |
   | max-speed | up to the governor limit | anything that would wait |
   | frugal | mostly serial | none unless needed |
-- **Browsers only through `forge-tools/governor.sh`.** Slots ≈ nproc − 1. Use `--prio` for user-reported bugs.
+- **Browsers only through `tools/forge/governor.sh -- <cmd>`.** Slots ≈ nproc − 1. Use `--prio` for user-reported bugs.
 - **Target load** ≈ cores − 0.5.
   - If load is below target and the backlog isn't empty, start the next work package without asking.
   - Backfill CPU-light work (translation, proofreading, docs) into idle capacity.
@@ -31,7 +31,7 @@ These rules exist because of Shorelight:
 - No blanket `git add -A` WIP snapshots of the shared tree: they captured half-finished agent work in Shorelight. Risky features ship behind a default-off flag until verified.
 
 ## Registry, status, watchdog
-- Every launch: `forge-tools/agents.sh add <id> <task> <branch> <log> <eta>`. Runtime state (registry, locks, queue log, spend) lives in the main checkout's gitignored `.forge/`.
+- Every launch: `tools/forge/agents.sh add <id> <task> <branch> <log> <eta>`. Runtime state (registry, locks, queue log, spend) lives in the main checkout's gitignored `.forge/`.
 - Each check-in also commits a snapshot, `agents.sh list > docs/forge/AGENTS.md`, so the registry survives a context reset or a new container. After a reset, **read the registry or the snapshot**, not transcripts.
 - **Check-in every 15 min** via `send_later`. Each check-in:
   1. run `status.sh`;

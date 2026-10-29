@@ -21,7 +21,7 @@ Runs in parallel with phases 1 (late) and 2. Design agents are CPU-light, but **
    - shape language matches personality; clear value grouping; costume logic (closures, layers, footwear);
    - **no shared face template**: every option has its own facial structure;
    - keep only story-essential motifs from the bible; everything else may change;
-   - **sheet metadata (name, age, role) is pulled from `docs/canon/cast.json`** (`{{CAST_DATA}}`), never typed free-hand.
+   - **sheet metadata (name, age, role) is pulled from `docs/canon/cast.json`**, never typed free-hand.
 2. **References** (lead). `docs/design/REFERENCES.md`: binding notes on what to take from each user photo (features, colouring, signature marks). Photos are not committed unless the user says so. Ambiguous reference ("are these new pets or replacements?") → default **additive**, disclose in the same status table.
 3. **Pilot sheet** (1 local agent, `briefs/designer.md`). The protagonist only, full option count. Lead self-review against the bar, as a checklist written into `docs/design/<char>/review.md`:
    - [ ] options distinct in black silhouette at sprite scale;

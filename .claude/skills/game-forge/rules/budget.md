@@ -2,7 +2,7 @@
 
 Shorelight hit the monthly spend limit twice. Work then had to run one task at a time, and 11 cloud sessions that had not pushed lost about 20 min of work each. There was no forecast, and no spend in the reports.
 
-1. **G0b estimate.** Before phase 0 ends, fill in the worksheet in `forge-tools/cost_estimate.md`: cost per phase, number of cloud sessions, and a range. Shorelight's data points:
+1. **G0b estimate.** Before phase 0 ends, fill in the worksheet in `cost_estimate.md` (`forge-tools/` in the game-forge checkout; `tools/forge/` once copied): cost per phase, number of cloud sessions, and a range. Shorelight's data points:
    - a cloud session costs about $5–40;
    - the 3D characters team cost about $35;
    - a QA walkthrough session takes 47–108 min.

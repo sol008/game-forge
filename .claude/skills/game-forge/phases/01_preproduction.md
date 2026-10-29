@@ -23,7 +23,7 @@ Write the canon (story bible, systems design, canon fact files, glossary) and on
    - enemy roster by area.
    The **cast roster is locked here**. An addition later triggers one question: "keep or cut overlapping cast?"
 3. **Canon fact files** (lead). Machine-readable, all in `docs/canon/`; the lore lint reads them:
-   - `docs/canon/cast.json`: per character id, names in every language, age, role, element, signature items. The single source for sheets (`{{CAST_DATA}}` in `briefs/designer.md`), bakers and data.
+   - `docs/canon/cast.json`: per character id, names in every language, age, role, element, signature items. The single source for sheets, bakers and data.
    - `docs/canon/appearance_facts.json`: per character hair, eyes, skin, build, age, height, signature items, and **form exceptions** (e.g. "silver hair only in true spirit form"). Seeded from the bible; rewritten after the G2 picks (phase 3).
    - `docs/canon/speakers.json`: who may speak; silent characters (pets, mute NPCs) get narration and emotes only.
    - `docs/canon/timeline.json`: one canonical timeline ("18 years ago", ages, dates).

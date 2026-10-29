@@ -3,6 +3,7 @@
 These engine tests must be green **before content fan-out** (PLAN §5, phase 2). They run in both render modes. Each one encodes an engine bug that Shorelight's chapter builders hit, worked around separately and reported late (mined slices 01–04).
 - The engine owner writes the suite from this spec, not from the engine's current behaviour.
 - When a content agent reports a new engine bug later, it becomes a new numbered test here before the fix merges.
+- **Battles.** C15 and C19 apply only when the game has battles (`CONFIG.battle` present); otherwise they are skipped and reported as `SKIP (no battles)`. The same goes for the battle bullets of C04 and C11.
 
 ## Harness
 
@@ -17,7 +18,7 @@ Two runners share one fixture set, `tools/test/conformance/fixtures.js`. That fi
 **P = Playwright on `file://`.**
 - Real keys come from `page.keyboard.press('z')` and `down`/`up`, with **autoplay off** unless the test says otherwise.
 - It runs once in 2D and once in default 3D (`?r3lite` allowed for speed).
-- It launches through the governor's browser slot (`governor.sh`), with a 90 s no-output watchdog.
+- It launches through the governor's browser slot (`tools/forge/governor.sh -- <cmd>`), with a 90 s no-output watchdog.
 
 **Shared helpers** (the same ones the chapter tests use):
 
@@ -34,7 +35,7 @@ Two runners share one fixture set, `tools/test/conformance/fixtures.js`. That fi
 - `G.lastError` set;
 - a new `warnOnce` key not listed in the test's `allowWarn`.
 
-**Exit gate:** all tests pass in N, plus the P subset in 2D and in 3D, with 0 warnings. Results go to `scratch/conformance.log`, ending in one `CONFORMANCE PASS n/n` or `FAIL` line, which the merge gate greps.
+**Exit gate:** all tests pass in N, plus the P subset in 2D and in 3D, with 0 warnings. Results go to `$SCRATCH/conformance.log`, ending in one `CONFORMANCE PASS n/n` or `FAIL` line. `tools/test/run.sh --quick` runs the suite with the validator and unit tests and exits non-zero on any FAIL; that exit code is what the merge gate's `FORGE_TEST_CMD` checks.
 
 ---
 
@@ -176,7 +177,7 @@ Two runners share one fixture set, `tools/test/conformance/fixtures.js`. That fi
 - **Why:** short lines collided across chapters, and then chapter entries overrode shared item names (mined_01 #13). Separately, Node tests ran with chapter scoping silently off because `currentScript` doesn't exist there (repo_survey §2).
 - **How (N):** pure unit tests on `G.I18N`. Also run over the real dictionaries: for every chapter key that equals a shared key, `t()` must return the shared value.
 
-### C15 Level-up refill (QoL default)
+### C15 Level-up refill (QoL default) — only when battles exist
 - **Asserts:**
   - When exp crosses a level, **that** member's HP and MP become the new maximums; the others are unchanged.
   - Status ailments are not cured.
@@ -210,7 +211,7 @@ Two runners share one fixture set, `tools/test/conformance/fixtures.js`. That fi
 - **Why:** a bad troop id restarted a failing battle every frame (mined_00 #9).
 - **How (N):** fixture with a bad troop. Step 600 frames; assert `Battle.start` was called once and `warnOnce` fired once.
 
-### C19 Battle result integrity
+### C19 Battle result integrity — only when battles exist
 - **Asserts:**
   - With `hpFloor` and `finishers`, the battle ends as a win only when every enemy is defeated or floored and finished. An ally reaching 0 HP never reads as a win.
   - `turnLimitResult` is honoured.
@@ -233,6 +234,6 @@ Two runners share one fixture set, `tools/test/conformance/fixtures.js`. That fi
 ## Run order and ownership
 
 1. N tests on every engine commit: about 30 s.
-2. P tests (C05, C06, C08–C13, C15, C16, C20) in 2D and 3D, before every merge that touches the engine: about 5 min on 1 browser slot.
+2. P tests (C05, C06, C08–C13, C15 if battles exist, C16, C20) in 2D and 3D, before every merge that touches the engine: about 5 min on 1 browser slot.
 3. The `afterScript` hook (C06) and the terminal-state `idle()` (C11) ship inside the shared test library, so chapter, side-quest and chain tests inherit them.
 4. Only the engine owner edits `tools/test/conformance/`. Content agents file engine bugs in this format: test id (new or existing), minimal repro, expected result, observed result.

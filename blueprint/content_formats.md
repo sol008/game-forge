@@ -11,11 +11,11 @@ Binding rules for builders:
 
 | Kind | Pattern | Example | Notes |
 |---|---|---|---|
-| map | `<place>[_<sub>]` | `harbor_inn_2f` | globally unique, ascii snake_case |
-| flag | `cN_<what>` | `c3_met_ferryman` | one meaning per flag; no dynamic names unless the pattern is declared in `flags.patterns` |
+| map | `<place>[_<sub>]` | `harbor_inn_2f`, `tamsui_fort` | globally unique, ascii snake_case, no chapter prefix; the validator checks uniqueness game-wide |
+| flag | `chN_<what>` | `ch3_met_ferryman` | one meaning per flag; no dynamic names unless the pattern is declared in `content/flags.json` |
 | quest | `q_cN_<name>` | `q_c3_lost_bell` | main-story quests set `main:true` |
-| collectible | `CONFIG.collectible.id` + `_` + quest stem | `ember_c3_lost_bell` | **derived, never hand-typed** (§4) |
-| item / skill / enemy | `cN_<name>` / `s_cN_<name>` / `e_cN_<name>` | `c3_bronze_bell` | only for chapter-local data; shared data has no prefix |
+| collectible | `CONFIG.collectible.id` + `_` + quest suffix (the quest id without `q_`) | `ember_c3_lost_bell` | **derived, never hand-typed** (§4); planned in `docs/canon/collectibles.json` |
+| item / skill / enemy | `cN_<name>` | `c3_bronze_bell`, `c3_rat` | only for chapter-local data (one registry each); shared data has no prefix |
 | troop | `t_cN_<name>` | `t_c3_dock_rats` | |
 | event / npc | `<name>`, unique within the map | `bell_spot`, `ferryman` | the engine key is `map:id` |
 | point of no return | `pnr_cN_<name>` | `pnr_c3_set_sail` | catalogued (§7) |
@@ -36,7 +36,7 @@ G.Maps.define('harbor', {
   objects: [/* §1.2 */], npcs: [/* §1.3 */], events: [/* §1.4 */],
   chests: [/* §1.6 */], warps: [/* §1.6 */], enemies: [/* §1.6 */], lights: [{ x: 4, y: 3, r: 160, color: '#ffb060' }],
   hooks: { onEnter, onUpdate, drawGround, drawOver, drawScreen }, // each one needs a 3D path (§1.7)
-  noSave: st => st.flags.c3_in_storm, autosave: true,
+  noSave: st => st.flags.ch3_in_storm, autosave: true,
 });
 ```
 - **Tiles**: one string per row, all rows the same width. The legend maps a char to a terrain id. Walls are authored **2 cells thick** (ceiling row plus face row). Water is solid unless bridged.
@@ -45,12 +45,12 @@ G.Maps.define('harbor', {
 ### 1.1 Objects
 ```js
 { t: 'cart', x: 9, y: 6 }                                     // footprint w×h comes from the art registry def
-{ t: 'gate', x: 3, y: 1, if: st => !st.flags.c3_gate_open }   // checked at map build and on rebuild (§1.8)
+{ t: 'gate', x: 3, y: 1, if: st => !st.flags.ch3_gate_open }   // checked at map build and on rebuild (§1.8)
 { t: 'tracks', x: 5, y: 7, live: true, if: st => st.vars.leg === 2 }  // re-checked every frame
 { t: 'crate', x: 4, y: 4, push: true }
 { t: 'oar_rack', x: 11, y: 2, w: 2, h: 1, marker: 'glint',
   interact: async (S, o) => { /* … */ }, label: '…' }         // inspectable across its WHOLE footprint
-{ t: 'herb_patch', x: 6, y: 9, marker: 'glint', picked: st => st.flags.c3_herb_1 }  // live getter, art dims when true
+{ t: 'herb_patch', x: 6, y: 9, marker: 'glint', picked: st => st.flags.ch3_herb_1 }  // live getter, art dims when true
 ```
 - **Footprint rule.** Interaction, collision and the hint tag all use the full footprint: instance `w/h` if given, else the registry def's `w/h`, else 1. Shorelight's `findInteract` used `o.w || 1` and ignored the def size, so ch9 carts and ch10 oars worked from only one half.
 - `if` vs `live`. Without `live`, `if` is evaluated when the map is built and again on every rebuild trigger (§1.8). With `live:true`, it is evaluated every frame. Use `live` for anything that changes while the player stays on the map.
@@ -59,15 +59,15 @@ G.Maps.define('harbor', {
 ### 1.2 NPCs
 ```js
 { id: 'ferryman', sprite: 'boatman', portrait: 'ferryman', x: 14, y: 5, dir: 'left', wander: 0,
-  if: st => !st.flags.c3_ferry_gone, pos: st => st.flags.c3_storm ? [3, 4] : [14, 5],
+  if: st => !st.flags.ch3_ferry_gone, pos: st => st.flags.ch3_storm ? [3, 4] : [14, 5],
   talk: ['line', ['hero:smile', 'reply']] /* or */ talk: async (S, npc) => { /* … */ },
   hints: { q_c3_lost_bell: 0 } }   // this NPC carries the pointer for step 0 of that quest (§8)
 ```
-A plain string in a `talk` array is spoken by the NPC. The speaker id must be on the speaker whitelist; silent characters (pets, mute cast) are rejected by lint.
+A plain string in a `talk` array is spoken by the NPC. The speaker id must be on the speaker whitelist (`docs/canon/speakers.json`); silent characters (pets, mute cast) are rejected by lint.
 
 ### 1.3 Events
 ```js
-{ id: 'arrive', trigger: 'auto',   once: true, if: st => !st.flags.c3_arrived, run: async S => {} }
+{ id: 'arrive', trigger: 'auto',   once: true, if: st => !st.flags.ch3_arrived, run: async S => {} }
 { id: 'bell',   trigger: 'action', x: 7, y: 2, w: 2, h: 1, label: '…', marker: 'tag', run: async S => {} }
 { id: 'surf',   trigger: 'touch',  x: 0, y: 9, w: 1, h: 3, run: async S => {} }
 ```
@@ -165,6 +165,7 @@ G.Quests.define('q_c3_lost_bell', {
 ```
 - `S.collect(questId)` lights `ember_c3_lost_bell` (prefix `CONFIG.collectible.id`, see `config_first.md`) with its animation. It is the **last** beat of the resolution. Collectibles never come from a bare `flag`: Shorelight's ch7/ch8 builders set flags that the ending count never saw.
 - Ending thresholds read `G.Collect.count()` against `CONFIG.collectible.threshold`.
+- `docs/canon/collectibles.json` is the **plan list** (name, chapter, quest id), written in phase 1. It plans at least the threshold plus a slack of 25 % of the threshold (minimum 2). The validator derives each id from its quest and checks the list against the code both ways: every planned collectible has a quest with exactly one `S.collect`, and every `S.collect` is planned.
 - The validator checks that:
   - every quest step has a `hint`;
   - every `collectible:true` quest has exactly one `S.collect`;
@@ -174,15 +175,15 @@ G.Quests.define('q_c3_lost_bell', {
 ## 5. Data formats
 ```js
 G.Data.chars.hero  = { name, title, elem, weapon, base: { hp, mp, atk, def, mag, spd, luk }, growth: { /* per level */ },
-                       learn: [{ lv: 3, skill: 'cut' }, { story: true, flag: 'c5_vow', skill: 'vow' }], ultimate, equip, joinLv, sprite, portrait };
+                       learn: [{ lv: 3, skill: 'cut' }, { story: true, flag: 'ch5_vow', skill: 'vow' }], ultimate, equip, joinLv, sprite, portrait };
 G.Data.skills.cut  = { name, desc, mp, type: 'phys', elem: null, target: 'enemy', power: 1.4, hits: 1, status: { id: 'bleed', chance: 0.3, turns: 3 },
                        buffs: [], delay: 1.0, fx, sfx, ultimate: false, combo: null };
 G.Data.items.tonic = { name, desc, type: 'use', price: 40, ch: 1, icon: 'potion', use: { target: 'ally', heal: 120, field: true, battle: true } };
 //   equipment: type 'weapon|armor|head|feet|acc' + stats, elem, who, resist, immune, special; `noSource: 'reason'` exempts the item-source check
-G.Enemies.base('e_c3_rat', { name, art: 'rat', lv: 11, elem: 'water', weak: ['earth'], m: { hp: 0.9, atk: 1.1 },
+G.Enemies.base('c3_rat', { name, art: 'rat', lv: 11, elem: 'water', weak: ['earth'], m: { hp: 0.9, atk: 1.1 },
                 skills: [['bite', 3], ['screech', 1, 'hp<50']], drops: [['tonic', 0.2]], phases: [], endAt: null, boss: false });
-G.Enemies.troop('t_c3_dock_rats', ['e_c3_rat', 'e_c3_rat'], 'docks', 'battle');
-G.Enemies.boss('t_c3_tide_king', ['e_c3_tide_king'], 'sea', 'boss');
+G.Enemies.troop('t_c3_dock_rats', ['c3_rat', 'c3_rat'], 'docks', 'battle');
+G.Enemies.boss('t_c3_tide_king', ['c3_tide_king'], 'sea', 'boss');
 ```
 - Enemy stats are derived from `enemyCurve(lv) × m`. Hand-typed HP/ATK is allowed only with a `// tuned:` note that cites the simulator run.
 - Chapter-local data lives in the chapter file under its prefix. Builders never edit shared data; corrections to shared entries go through an engine-owned `fixes` table.
@@ -200,8 +201,8 @@ G.Enemies.boss('t_c3_tide_king', ['e_c3_tide_king'], 'sea', 'boss');
   6. the source text.
 
   A chapter entry **only fills gaps**: it never shadows a shared key, in any chapter. Shorelight's cat "Taro" would otherwise have renamed the "Taro Ball Soup" item everywhere.
-- **Glossary:** `i18n/glossary.json` holds cast, place, item and term names in every language. The validator checks that every glossary term in a source line maps to its glossary rendering in the target line.
-- **Puzzles:** keys whose answer depends on glyphs or rhymes carry `// i18n:puzzle`, and the translator re-authors them rather than translating literally.
+- **Glossary:** `docs/i18n/GLOSSARY.md` holds cast, place, item and term names in every language. The validator checks that every glossary term in a source line maps to its glossary rendering in the target line.
+- **Puzzles:** the screenplay tags a line whose answer depends on glyphs, puns or rhymes `[PUZZLE-LANG]`; in code its key carries `// i18n:puzzle` beside it. The translator applies the requirements' puzzle policy (re-author by default) rather than translating literally.
 - **Units:** dictionary files are split at about 1,200 lines (`c11`, `c11b`, both in scope `c11`).
 
 ## 7. Points of no return
@@ -226,7 +227,7 @@ if (!(await S.pointOfNoReturn({ id: 'pnr_c3_set_sail', intro: [['captain', '…'
 | Screenplay element | Code | Test assertion it becomes |
 |---|---|---|
 | Scene header: map, time, light, particles | `G.Maps.define` fields, `light`, `particles` | map exists; light within ±0.05 |
-| `BGM: x` / `BGM: none` / `ambience: fire, insects` | `bgm:'x'` / `bgm:null` / `ambience:'ritual_fire'` | `G.Music.current === 'x'`, or `null` **and** `G.Ambience.current === 'ritual_fire'` |
+| Cue line `bgm=x` / `bgm=none` / `ambience=ritual_fire` | `bgm:'x'` / `bgm:null` / `ambience:'ritual_fire'` | `G.Music.current === 'x'`, or `null` **and** `G.Ambience.current === 'ritual_fire'` |
 | "Must not imitate the sacred chant" | ambience only; no song id | the track has no melody voice (music lint) |
 | Numbered beat `角色(表情): 台詞` | `S.say('id:expr', '台詞')` | the beat's line is reached in the chapter test |
 | Movement or camera beat | `S.move`, `S.camera.pan` | after the scene: camera on the player, player on screen |
@@ -236,17 +237,18 @@ if (!(await S.pointOfNoReturn({ id: 'pnr_c3_set_sail', intro: [['captain', '…'
 | Shops, inn price | `S.shop`, `S.inn` | stock ids exist; the price is within the chapter's band |
 | "One-way from here" | `pointOfNoReturn` | listed in the catalogue; the warning appears when content is open |
 
-- Each screenplay scene carries a machine-readable spec line:
+- Each screenplay scene carries one machine-readable cue line, the only cue mechanism:
 
-  `<!-- spec: {"scene":"4-10","map":"lake_rite","bgm":null,"ambience":"ritual_fire","light":0.4,"encounters":"none"} -->`
+  `<!-- cue: 4-10 bgm=none ambience=ritual_fire sfx=drum_far -->`
 
-  `tools/test/spec_conformance.js` turns every line into an assertion.
+  `tools/lint/screenplay.js` extracts every cue line to `docs/story/cues.json`, and `tools/test/spec_conformance.js` asserts each one in game. The other rows of the table (map, light, encounters) are asserted by the chapter test.
 - Tests encode the spec, never current behaviour. Shorelight's ch4 test asserted "festival night: no BGM", which locked in a missing ambience the screenplay required.
 - The screenplay is frozen with a version hash before the build. The builder brief carries that hash.
 
 ## 10. Genre notes
 - **Action / adventure:** keep maps, events, the script API and quests. Replace `battle()` with real-time encounters, roaming `enemies` gain `ai` and `hp` instead of `troop`, and points of no return are unchanged.
 - **Platformer / puzzle:** `tiles` gain layers (solid, one-way, hazard). Events become trigger volumes. Collectibles keep the derived-id rule. Each level is a "chapter" for the fixtures. `pointOfNoReturn` guards level exits that lock collectibles.
+- **No combat (`CONFIG.battle` absent):** the boss and economy simulators are replaced by `tools/sim/solver.js`: every puzzle is solvable from `chapterStart` and every step is hinted. The full-chain test still applies; conformance cases that need battles (C15, C19) are skipped; builders press through "one battle, if any"; the guide charts only what has data.
 - **Visual novel:** maps shrink to backgrounds. `say`, `choice`, flags, the i18n rules and the screenplay mapping carry over unchanged; choice parity (real keys vs autoplay) matters most.
 - **Tactics / strategy:** troops become unit placements on a map grid. `battle(opts)` gains `objective` (`rout`, `survive N`, `reach`) and `deploy`. Everything else stays as above.
-- **Every genre:** id grammar, discoverability markers and hints, whole-literal i18n with scopes, and spec lines in the screenplay.
+- **Every genre:** id grammar, discoverability markers and hints, whole-literal i18n with scopes, and cue lines in the screenplay.

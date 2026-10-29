@@ -22,8 +22,8 @@ culturally sound, and complete: every scene has a map, a sound cue, its encounte
 
 ## Screenplay format (one file per unit)
 1. **Maps**: id (a unique snake_case place name such as `tamsui_fort`, no chapter prefix), a name in every language
-   of `langs`, purpose, size in tiles, layout prose plus an ASCII sketch (exits, NPCs, chests, clue tiles, enemies, puzzles), time of day,
-   lighting, particles, connections.
+   of `langs`, purpose, size in tiles, layout prose plus an ASCII sketch (exits, NPCs, chests, clue tiles, enemies,
+   puzzles), time of day, lighting, particles, connections.
 2. **Sound per scene**: one cue line per scene, `<!-- cue: <scene-id> bgm=<id>|none ambience=<id>|none sfx=<ids> -->`;
    `bgm=none` carries its reason in the prose. The lint extracts these to `docs/story/cues.json`, and
    `tools/test/spec_conformance.js` asserts them in game. No other cue format.
@@ -56,7 +56,8 @@ culturally sound, and complete: every scene has a map, a sound cue, its encounte
 2. `{{LORE_LINT_CMD}}` is clean: appearance facts, speaker whitelist, timeline, unique names.
 3. Tests: none for you to run. Write for the default render mode ({{RENDER_MODE}}: camera, staging), and take levels
    and rewards from the canonical progression table, the same one the test fixtures use.
-4. Strings: the Names table covers every name you introduce, in every language of `langs`. The two lints above are your validator.
+4. Strings: the Names table covers every name you introduce, in every language of `langs`. The two lints above are
+   your validator.
 5. Commit only your files to `{{BRANCH}}` in `{{WORKTREE}}`. Report, then **STOP**. The lead freezes and hashes the
    screenplay; after that, changes go through the lead only.
 

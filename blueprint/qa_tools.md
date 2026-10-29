@@ -15,12 +15,14 @@ tools fresh against its own engine. They are distilled from Shorelight's `tools/
 - **Fail on any runtime error**: console.error, pageerror, unhandled rejection, `G.lastError`, or a warn matching
   `/unknown|missing|not registered|undefined/`. The allowlist sits in one file, and each entry gives its reason.
 - **Selectable scope.** `--only a,b`, `--from seg`, `--json FILE`, `--out DIR`. Re-run only what failed.
-- **Browser tools take a slot from `governor.sh`.** They never launch Chromium on their own.
+- **Browser tools take a slot from the governor** (`tools/forge/governor.sh -- <cmd>`; phase 00 copies the forge tools
+  into the game repo as `tools/forge/`). They never launch Chromium on their own.
 - **Shortcuts are declared.** Any assist (level, gear, flag, teleport, difficulty) is logged as `ASSIST <what>` and
   copied into the report. A run with assists can never be the gate run.
 - **Tests encode the spec.** Every assertion that fixes a behaviour cites its source (screenplay beat id,
   requirements field, design doc). Never assert "what the game does now".
-- Logs and artifacts go to the scratchpad or `tools/*/out/` (git-ignored). Nothing a tool generates is hand-edited.
+- Logs and artifacts go to `$SCRATCH` (defined in `docs/forge/env.md`) or `tools/*/out/` (git-ignored). Nothing a
+  tool generates is hand-edited.
 
 | # | Tool | File (suggested) | Runs | Budget | Gate |
 |---|---|---|---|---|---|
@@ -31,14 +33,15 @@ tools fresh against its own engine. They are distilled from Shorelight's `tools/
 | 5 | Side-quest walkthroughs | `tools/test/sidequests/` | browser | ≤20 min/chapter | phase 8 |
 | 6 | Full-chain test | `tools/test/full_chain.js` | browser | ≤90 min | phase 7/8, release |
 | 7 | Battle bot | `js/engine/autobattle.js` (shared) | both | n/a | library |
-| 8 | Boss simulator | `tools/sim_boss.js` | Node | ≤15 min total | per chapter |
-| 9 | Economy simulator | `tools/sim_economy.js` | Node | ≤10 s | per chapter |
+| 8 | Boss simulator | `tools/sim/boss.js` | Node | ≤15 min total | per chapter |
+| 9 | Economy simulator | `tools/sim/economy.js` | Node | ≤10 s | per chapter |
+| 9b | Puzzle solver (no combat; replaces 8–9) | `tools/sim/solver.js` | Node | ≤60 s | per chapter |
 | 10 | 3D sweep | `tools/r3d/sweep.js` | browser | ≤60 s/map, sharded | phase 8 |
 | 11 | Music render | `tools/render_music.js` | browser | ≤30 s/track | phase 9 |
 | 12 | Guide builder | `tools/guide/build_guide.js` | Node | ≤60 s (+shots) | phase 10 |
-| 13 | Screenshot harness | `forge-tools/shoot.js` | browser | ≤10 s/shot | docs, answers |
+| 13 | Screenshot harness | `tools/forge/shoot.js` | browser | ≤10 s/shot | docs, answers |
 | 14 | Packaging | `tools/package.sh` | shell | ≤3 min | phase 11 |
-| 15 | Release gate | `forge-tools/release_gate.sh` | browser | ≤5 min | G5 |
+| 15 | Release gate | `tools/forge/release_gate.js` | browser | ≤5 min | G5 |
 
 ---
 
@@ -75,8 +78,9 @@ for (const file of scriptList()) {
 **Purpose.** Static and semi-static content integrity: every reference, flag, item, path and string, before any
 browser starts. **Errors fail. Warnings are kept at 0**; `--strict` (the default in the merge gate) fails on warnings.
 **Inputs.** The load harness (real registries and a real `MapScene` for collision), a source scan of map and story
-files, `content/flags.json` (declared dynamic patterns), `docs/appearance_facts.json`, `docs/speakers.json`,
-screenplay sidecars `docs/story/chN.rules.json`.
+files, `content/flags.json` (declared dynamic patterns), the canon files `docs/canon/*.json` (`cast.json`,
+`appearance_facts.json`, `timeline.json`, `collectibles.json`, `speakers.json`), and the scene cues
+`docs/story/cues.json` (extracted from the screenplays' `<!-- cue: -->` lines by `tools/lint/screenplay.js`).
 **CLI.** `node tools/test/validate.js [-v] [--json] [--strict] [--only cat,cat] [--extra fixture.js]`.
 **Output.** `file:line  [cat]  id  message`, grouped by category, then a summary line. `--json` emits the issues plus
 the **item-source graph** and the **reach graph**, which the guide and the economy sim consume.
@@ -95,7 +99,8 @@ Checks, by category:
    a condition that is always or never true is reported.
 3. **Flags, both ways.** Every flag read (`S.has`, `flags.x`, data `req`/`learn.flag`, `if:` getters) is set
    somewhere, and every flag set is read somewhere. The same applies to collectible ids (granted and checked by the
-   ending), quest stages (advanced and tested) and vars.
+   ending), quest stages (advanced and tested) and vars. Collectible ids are derived from their quest ids and checked
+   against the plan list `docs/canon/collectibles.json` both ways.
 4. **No dynamic names.** A computed key (`'chN_pc_'+k`) is an **error** unless it matches a pattern declared in
    `flags.json` (`{"pattern":"ch4_pc_{k}","k":["a","b","c"]}`). The pattern then expands into concrete flags for check
    3. Shorelight instead treated every literal in such a file as "set", which hid real misses.
@@ -124,17 +129,19 @@ Checks, by category:
    and collectibles it closes.
 8. **Multi-tile footprints.** Every object with `w>1||h>1` that is interactable must accept interaction from every
    footprint cell. Check it on the real engine by calling `findInteract` from each adjacent cell.
-9. **i18n.** Every source-language string key has an entry in every target locale. Templates keep the same
-   placeholders. Puzzle and glyph keys are flagged `puzzle:true` and must have a translator note.
+9. **i18n.** Every source-language string key has an entry in every target locale: the gate is **0 missing keys**
+   (the coverage % is informational only). Templates keep the same placeholders. Puzzle and glyph keys carry
+   `// i18n:puzzle` beside the key (from `[PUZZLE-LANG]` in the screenplay) and must have a translator note. Glossary
+   terms follow `docs/i18n/GLOSSARY.md`.
    **Unique display names** across characters, items, skills, enemies and quests in every locale. Line-fit
    (measured) runs in e2e, not here.
-10. **Lore lint.** Script descriptors are checked against `appearance_facts.json`; hair, eye, age and build words
-    next to a cast name or alias fail. Speakers must be in `speakers.json`; pets marked `silent` may only `emote`.
-    Dates and eras are checked against the timeline file.
-11. **Screenplay conformance hooks.** Each `chN.rules.json` beat (`{beat, map, bgm|ambience, encounters, rewards,
-    noLoot}`) is checked statically: the map exists, its `bgm` or the scene's `S.bgm` matches the required cue
-    (`null` is allowed only if the rule says `silence`), and drops and chests honour `noLoot`. Beats that need
-    runtime checks emit assertions that the chapter test imports (§4).
+10. **Lore lint.** Script descriptors are checked against `docs/canon/appearance_facts.json`; hair, eye, age and
+    build words next to a cast name or alias fail. Speakers must be in `docs/canon/speakers.json`; pets marked
+    `silent` may only `emote`. Dates and eras are checked against `docs/canon/timeline.json`.
+11. **Scene cues.** Each `docs/story/cues.json` entry (`{scene, bgm, ambience, sfx}`, from a
+    `<!-- cue: <scene-id> bgm=<id>|none ambience=<id>|none sfx=<ids> -->` line) is checked statically: every id
+    exists, and the scene's map `bgm` or its `S.bgm` matches the cue (`null` only where the cue says `bgm=none`).
+    The runtime check is `tools/test/spec_conformance.js` (§4). There is no other cue format.
 12. **Engine support.** A data field that the engine never reads, or an item `special` with no implementation, is a
     warning. That means it fails under `--strict`.
 
@@ -196,8 +203,9 @@ fails the run unless it is wrapped in `assist()` (logged, and never allowed in a
   fails at once.
 - **Segment hand-off.** A segment ends at its hand-off assertion (chapter increments, map changes). It never waits on
   past the end.
-- **Spec assertions.** Import the runtime assertions of `chN.rules.json` (required BGM or ambience per beat, encounter
-  count, rewards). After every cutscene: the player is on screen and the camera follows.
+- **Spec assertions.** `tools/test/spec_conformance.js` asserts every `docs/story/cues.json` entry in game (required
+  BGM, ambience and sfx per scene); the chapter test asserts encounter count and rewards. After every cutscene: the
+  player is on screen and the camera follows.
 - **Sweeps.** Every map loads, settles its entry event, talks to every NPC and fires every event one at a time. Every
   troop resolves in ≤900 game-seconds and returns to the map with no NaN. Every text box in every locale fits
   (measured), with a screenshot per screen per locale.
@@ -256,8 +264,10 @@ is the integration and balance acceptance gate.
   items, gear, gold, party or levels are blocked and logged as `assumed state`. `--assist[-from chN]` exists for
   diagnosis only and marks the run `ASSISTED` (not a gate pass).
 - Shopping uses the gold actually carried, bought the way the economy model buys.
-- **Boundary record** at each chapter start: level per member, gold, item counts, gear, collectibles, against the
-  economy model's normal-player row. A delta beyond the band (±2 Lv, ±30 % gold) is a FAIL.
+- **Boundary record** at each chapter start and boss: level per member, gold, item counts, gear, collectibles,
+  against the economy model's normal-player row. A level more than ±1 off at a boss, or gear affordability below
+  90 %, is a FAIL.
+- **No combat** (`CONFIG.battle` absent): the chain still applies; it replays every puzzle and the critical path.
 - **Save/reload mid-run.** At `--reload-at chN` it saves through the real save menu, opens a fresh page, loads
   through the title menu, and continues. Each ending branch replays from a save made before the finale.
 - Terminal-state detection and the 90 s watchdog, as in §4. Fail fast on game over.
@@ -295,7 +305,7 @@ chapter battle hooks through the hook registry (no eval injection into chapter c
 **Checks.** 300–400 seeded trials per fight with the shared bot. First-try win rate in the requirements band
 (Shorelight: 86–94 %); at `--lv -2` it stays above the floor. **Party alive at win** (an ally KO must never count as a
 boss win). Reaching the turn cap counts as a loss.
-**CLI.** `node tools/sim_boss.js [--only ids] [--ch N] [--n 400] [--model normal|minimal|thorough] [--lv ±k] [--json]`.
+**CLI.** `node tools/sim/boss.js [--only ids] [--ch N] [--n 400] [--model normal|minimal|thorough] [--lv ±k] [--json]`.
 **Output.** A table of fight, model, Lv, win %, median turns, deaths, and items used; FAIL rows are out of band.
 `docs/BALANCE.md` tables are generated from `--json`. **Budget** ≤15 min for every boss on 1 CPU.
 **Rule.** Tune difficulty only through this sim, never to make a test pass.
@@ -316,10 +326,21 @@ side-quest rewards.
 Spending is the same for all: restock the kit first, then the best gear gain per coin.
 **Checks.** Per boss: model level ≥ design level − 1; normal's gear coverage ≥90 %; minimal still wins at ≥ the
 floor rate (fed to §8); gold never negative.
-**CLI.** `node tools/sim_economy.js [--maps] [--schedule] [--json out.json] [--diff normal]`.
+**CLI.** `node tools/sim/economy.js [--maps] [--schedule] [--json out.json] [--diff normal]`.
 **Output.** Per-chapter table, `model.json` (the input for fixtures, the boss sim and the chain), and the encounter
 schedule the chain test pays. **Budget** ≤10 s.
 **Caught.** The ch8 economy: 31 % → 97 % win and gear affordability 9–56 % → 92–100 %, fixed through rewards alone.
+
+## 9b. Puzzle solver (games without combat)
+
+**Purpose.** For a game with no `CONFIG.battle`, it replaces §8 and §9 in phase 7: every puzzle and gate on the
+critical path is solvable from `chapterStart(ch)`, and every step is hinted.
+**Inputs.** The load harness, the reach graph (§2), puzzle definitions with their state, inputs and solution (as the
+screenplay specifies them), and quest `hint`s.
+**Checks.** A search over the puzzle's real state machine finds a solution from the fixture state; the solution only
+uses items and knowledge reachable before it; every step a solution needs has a pointer (hint, NPC line, marker);
+`// i18n:puzzle` keys still solve in every language.
+**CLI.** `node tools/sim/solver.js [--ch N] [--only ids] [--json]`. **Budget** ≤60 s.
 
 ## 10. 3D sweep
 
@@ -329,8 +350,8 @@ budget.
 hard-coded query string with cast names. Lite mode (`?r3lite`: half resolution, no shadows or post) under SwiftShader.
 **Checks (fail on any threshold; Shorelight's sweep only reported).** Build time; draw calls ≤ the requirements
 budget (Shorelight median 79; the worst map at ~490 was a finding); triangles; console errors and `warnOnce` keys = 0;
-**billboard fallbacks** (object or actor with no 3D model) = 0 unless allowlisted; placement outliers (props in walls
-or floating). Batching is on; `--ab` compares against `?nobatch`.
+**billboard fallbacks** (object or actor with no 3D model) = 0, except an explicit allowlist in `docs/qa/sweep3d.md`;
+placement outliers (props in walls or floating). Batching is on; `--ab` compares against `?nobatch`.
 **CLI.** `node tools/r3d/sweep.js --out DIR [--resume] [--shard i/n] [--only map,map] [--ab]`.
 **Output.** `DIR/<map>.json`, a JPEG of the 3D layer, a contact sheet, and `docs/qa/sweep3d.md`.
 **Budget.** ≤60 s per map. Shard across cloud sessions (175 maps took ~2 h on one CPU). Re-run only failures, plus 10
@@ -343,8 +364,8 @@ maps crashing headless Chrome.
 **Purpose.** Objective checks on procedural music the agent cannot hear, plus previews for the human (G3).
 **Inputs.** The song table, rendered offline in headless Chromium through the game's own sequencer and master chain
 at the default music volume.
-**Checks (fail, not just print; Shorelight's tool only printed).** Integrated K-weighted loudness within the
-requirements band (e.g. −20 ±3 LUFS-ish; signature themes ±2); peak ≤ −1 dBFS. **Loop seam**: the sample jump at the
+**Checks (fail, not just print; Shorelight's tool only printed).** Integrated K-weighted loudness −20 ±3 LUFS-ish
+(as this tool measures it); peak ≤ −1 dBFS. **Loop seam**: the sample jump at the
 cut ≤ the signal's 99.9th-percentile step, a low periodic error into the next loop, and RMS either side within 1.5 dB.
 Peak polyphony ≤ the voice budget. Every BGM id used by maps, troops or scripts exists, and every song is used.
 **CLI.** `node tools/render_music.js [--ids a,b] [--loops 2] [--wav] [--preview 30 --from id=sec] [--json]`.
@@ -359,9 +380,11 @@ placeholders; tables, counts and charts are never typed by hand.
 **Inputs.** `docs/guide/parts/*.md` and `chapters/chNN.md` fragments, the load harness (per-chapter attribution),
 validator `--json` (**item-source graph**, reach graph, quest hints), sim JSON (balance tables), map shots (§13),
 and `minigames.json` (each minigame's scoring, answers or seed rules, exported by the minigame module itself).
-**Placeholders.** `<!-- chart:ID -->` (level curve, boss HP, gold, element cycle, collectibles, route) and
-`<!-- table:ID -->` (`shops:chN`, `chests:chN`, `bosses:chN`, `enemies:chN`, `items:type`, `quests:chN`,
-`minigame:ID`, `missables:chN`). They expand to SVG or HTML tables, and to Markdown tables in the `.md` output.
+**Placeholders.** `<!-- chart:<name> -->` (level curve, boss HP, gold, element cycle, collectibles, route),
+`<!-- table:<name> -->` (`shops:chN`, `chests:chN`, `bosses:chN`, `enemies:chN`, `items:type`, `quests:chN`,
+`minigame:ID`, `missables:chN`) and `<!-- map:<id> -->` (the annotated shot, §13). They expand to SVG or HTML tables,
+and to Markdown tables in the `.md` output. Chart only what has data: a game without combat has no level curve, boss
+HP or element chart.
 **Checks (build fails).** An unknown placeholder; a missing image; a chapter with no fragment (a stub is generated
 and listed); item counts that differ from the validator's graph (the guide never recomputes them). **Every map has
 an annotated image**, every quest step its pointer text, every minigame a section, and every point of no return a
@@ -377,17 +400,34 @@ and directions.
 
 **Purpose.** Deterministic stills for the guide, galleries, release notes and answers to spatial questions. It also
 covers whole-map annotated renders (Shorelight's `shoot_maps.js` numbered chests only).
+The tool is the shared `tools/forge/shoot.js`; the game supplies the state through its debug surface
+(`debug_hooks.md`).
 **Rules.**
-- `noEncounters`: roaming enemies off and the step-encounter rate 0, so no battle photobombs a shot.
-- `waitForState(pred, timeout)` polls game state; never fixed sleeps. Wait for the scene, then 2 settled frames.
-- Labels are drawn with the **game's bundled CJK font**, not PIL's default.
-- **Every label comes from map data**: exits (`→ <target map name>`), NPC names, chest numbers matching the guide
-  table, clue tiles, quest targets and the player start. Never type a place name by hand.
-- Whole-map render at a fixed scale, with lighting off unless `light`, and per-map options `flags=`, `vision`, `x/y`.
-- Render mode is selectable. The 2D whole map is the default for annotation.
-**CLI.** `node forge-tools/shoot.js map:<id>[:vision,flags=a+b] [--annotate] [--out DIR] [--max-kb 120]`;
-`shoot.js url:"?debug&scene=…" --wait "G.Scenes.top().stage==='menu'"`.
-**Output.** JPEG ≤120 KB each, plus a JSON sidecar of label positions. **Budget** ≤10 s per shot.
+- No encounters: load `?debug&map=<id>&noenemies=1` (or set it with `--eval-before`), so no battle photobombs a shot.
+- `--wait-for <predicate>` polls game state; never fixed sleeps. Wait for the scene, then 2 settled frames.
+- Labels are drawn with the **game's bundled CJK font** (`--font-from-page`), not a system default.
+- **Every label comes from map data** through `--labels-eval`: exits (`→ <target map name>`), NPC names, chest
+  numbers matching the guide table, clue tiles, quest targets and the player start. Never type a place name by hand.
+- Whole-map render: the game's debug surface frames the whole map at a fixed scale (lighting off unless `light`),
+  called with `--eval-before`; size `--viewport` to fit. Per-shot state comes from `flags=`, `vision` and `x/y` in the
+  URL.
+- Render mode is selectable (`render=2d|3d`). The 2D whole map is the default for annotation.
+**CLI** (the tool's own usage):
+```
+node tools/forge/shoot.js --url URL|PATH [--out FILE.png] [--viewport 1280x720]
+     [--storage KEY=JSON ...] [--init JS ...] [--eval-before JS ...]
+     [--wait-for JS-PREDICATE] [--timeout MS] [--press KEYS] [--wait MS] [--selector CSS]
+     [--title TEXT] [--label "x,y,text" ...] [--labels FILE.json] [--labels-eval JS]
+     [--font FILE | --font-b64 BASE64|@FILE | --font-from-page JS] [--label-size PX] [--strict]
+```
+A typical map shot:
+```
+tools/forge/governor.sh -- node tools/forge/shoot.js --url "index.html?debug&map=harbor&noenemies=1" \
+  --wait-for "G.Debug.idleNow()" --labels-eval "<labels from map data>" --font-from-page "<bundled font data>" \
+  --out "$SCRATCH/shots/harbor.png"
+```
+**Output.** A PNG, plus a JSON summary on stdout. The guide builder compresses each image to ≤120 KB. Exit 1 if
+loading or `--wait-for` fails (or on page errors with `--strict`). **Budget** ≤10 s per shot.
 **Caught.** A random battle in a shot. The victory screen already closed. Tofu boxes in labels. The wrong street name
 on a label. Wrong in-game directions from reading code.
 
@@ -409,17 +449,36 @@ on a label. Wrong in-game directions from reading code.
 list, sizes, font glyph count and slice count, git sha). **Budget** ≤3 min.
 **Caught.** The stale font (99 vs 101 slices). 裪 appearing only in a comment. Packaging run before the text was final.
 
-## 15. Release gate (`release_gate.sh`)
+## 15. Release gate (`tools/forge/release_gate.js`)
 
-**Purpose.** Prove the shipped zip, not the repo, works the way a player opens it.
-**Steps.** Freeze check first (no running agents, tree clean). Build (§14). Unzip into a path with **spaces and
-CJK** (`/tmp/x/My Games 彼岸燈/`). From `file://` there, boot **every render mode** (2D, 3D default, 3D-lite) with a
-clean profile. In each: reach the title, start a New Game with real keys, reach map control, save and reload. Require
-0 console errors, 0 network requests and the font loaded (`document.fonts.check`). Screenshot each mode. Diff the zip
-manifest against the previous release. Attach `validate --strict`, `unit` and this commit's chain summary.
-
-**CLI.** `bash forge-tools/release_gate.sh [--zip FILE]`. **Output** `RESULT release PASS`, screenshots, and the zip
-path to send. **Budget** ≤5 min.
+**Purpose.** Prove the shipped zip (or the hosted build), not the repo, works the way a player opens it.
+**What the tool does.** It unzips into a temp path with **spaces and CJK** characters, then for each mode loads the
+entry over `file://` with a clean profile, applies that mode's `--settings` (merged into `localStorage[--settings-key]`
+before page scripts run) and `--query`, waits, presses the `--press` keys, evaluates every `--assert`, and screenshots
+to `<out>/release_<mode>.png`. Any page error, `console.error`, failed request, network request, crash or failed
+assert is an error. With `--url URL` it loads a hosted build instead of a zip (same-origin requests allowed).
+**Modes.** One mode per (render × language), e.g. `2d_zh,3d_zh,2d_en,3d_en`; each sets its render mode and language
+through `--settings`.
+**Around it (the lead).** Freeze first: for the Release milestone no agent is running; for other milestones package
+from a frozen `main` sha. The tree is clean. Build (§14), run the gate, look at every screenshot, diff the zip manifest
+against the previous release, and attach `validate --strict`, `unit` and this commit's chain summary.
+**CLI** (the tool's own usage):
+```
+node tools/forge/release_gate.js <zip> | --url URL  [--modes 2d,3d] [--out DIR] [--entry index.html]
+     [--settings-key KEY --settings MODE=JSON ...] [--query MODE=QS ...]
+     [--wait MS] [--press KEYS] [--eval JS ...] [--assert JS ...] [--ignore REGEX ...]
+     [--viewport 1280x720] [--timeout MS] [--allow-net] [--keep] [--browser-arg ARG ...]
+```
+A typical run (New Game with real keys, map control reached, the bundled font loaded):
+```
+tools/forge/governor.sh -- node tools/forge/release_gate.js "$zip" --modes 2d_zh,3d_zh,2d_en,3d_en \
+  --settings-key <id>_settings --settings '2d_zh={"render3d":false,"lang":"zh"}' … \
+  --press 'wait:1500,KeyZ,KeyZ,wait:3000' --assert 'G.Scenes.top().sceneName==="MapScene"' \
+  --assert 'document.fonts.check("16px "+G.CONFIG.font.face)' --out "$SCRATCH/release"
+```
+Save and reload are proven by the chain run's `--reload-at` (§6), not by this tool.
+**Output.** One JSON report on stdout and a screenshot per mode. Exit 0 pass, 1 errors, 2 usage or setup problem.
+**Budget** ≤5 min.
 **Caught.** Path-with-spaces and CJK-path bugs in the launcher, a missing bundled font, and late cloud pushes after a
 "final" build.
 

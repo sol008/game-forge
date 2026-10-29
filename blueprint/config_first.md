@@ -52,7 +52,7 @@ G.CONFIG = {
               names: { fire: '火', water: '水', wood: '木' }, colors: { fire: '#ff7a4a', water: '#5ab0ff', wood: '#6ad07a' } },
   collectible: { id: 'ember', name: '餘燼', icon: 'ember', threshold: 9, endings: { met: 'true', unmet: 'normal' } },
   vision: { id: 'insight', name: '洞見', defaultSec: 60 },  // null = no vision mechanic
-  defaultParty: ['lead'], startMap: 'ch0_start',
+  defaultParty: ['lead'], startMap: 'ember_quay',
   font: { face: 'GameSerif', probe: '燼路', srcCss: '<google-fonts-css-url>' },
   text: { gameOver: '火光熄滅了……', retry: '重新挑戰', objective: '目標：%s' },
 };
@@ -169,16 +169,17 @@ Ids are ASCII `snake_case`. Prefixes make ownership greppable and let several bu
 | Kind | Pattern | Example |
 |---|---|---|
 | Flags | `chN_<what>` | `ch3_bridge_fixed` |
-| Quests | `q_<chN>_<name>` | `q_c3_lost_net` |
-| Collectibles | `<collectible.id>_<name>` (one prefix, docs and code agree) | `ember_ferryman` |
+| Quests | `q_cN_<name>` | `q_c3_lost_net` |
+| Collectibles | **derived**: `<collectible.id>_<quest suffix>`, never typed | `ember_c3_lost_net` |
 | Chapter-local items/skills/enemies | `cN_<name>` | `c3_net_charm` |
 | Troops | `t_cN_<name>` | `t_c3_eels` |
-| Maps | `chN_<place>[_<sub>]` | `ch3_pier_b1` |
+| Maps | `<place>[_<sub>]`, unique game-wide, no chapter prefix | `tamsui_fort`, `pier_b1` |
 | Events/NPCs | unique within their map; global if a test refers to them | `intro`, `ferryman` |
 | Shared data | no prefix, defined only in `js/data` | `herb`, `fire_1` |
 
-- Each builder brief grants an **exclusive new-file namespace** (`maps/ch3_*`, `i18n/en_ch3*.js`, `r3d/props_ch3.js`) and the `cN_` id prefix.
-- Dynamic ids (`'ch3_bell_' + i`) must be declared as a pattern so the flag set/read check can match them.
+- Each builder brief grants an **exclusive new-file namespace** (`maps/ch3_*`, `i18n/en_ch3*.js`, `r3d/props_ch3.js`), the `ch3_` flag prefix and the `c3_` data prefix. File names may carry the chapter; map ids do not.
+- `docs/canon/collectibles.json` is the **plan list** (name, chapter, quest id). The validator derives each collectible id from its quest and checks the list against the code both ways.
+- Dynamic ids (`'ch3_bell_' + i`) must be declared as a pattern in `content/flags.json` so the flag set/read check can match them.
 - Names (display strings) are unique across characters, items and skills (PLAN §7).
 
 ## 7. Enforcement (validator / lint checks)
@@ -190,4 +191,5 @@ Ids are ASCII `snake_case`. Prefixes make ownership greppable and let several bu
 | `no-monkey-patch` | Content assigns to `G.<Engine>.<fn> =` or `<scene>.<method> =` |
 | `config-keys` | `localStorage` key not built by `G.key()` |
 | `registry-ids` | Hook/tactic/arena/ultimate registered for an id that doesn't exist |
-| `prefix` | A chapter file defines data outside its `cN_` prefix |
+| `prefix` | A chapter file defines data outside its `cN_` prefix, or a flag outside its `chN_` prefix |
+| `map-ids` | Two maps share an id, or a map id is not snake_case |

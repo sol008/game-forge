@@ -29,7 +29,7 @@ The user can override any of them.
 
 ## Answering the player (playtest phase)
 - Use the user's language.
-- Spatial questions: a **rendered, annotated map** with exact coordinates. Render it with `forge-tools/shoot.js` using the game's own font for CJK labels.
+- Spatial questions: a **rendered, annotated map** with exact coordinates. Render it with `tools/forge/shoot.js` using the game's own font for CJK labels.
 - Game-rule questions ("what are the answers?") come from the code's real logic. Say plainly when something is random.
 - Bug reports: reproduce in the player's settings (render mode, language) first. Fix, add a regression check, commit the general lesson to game-forge, and say what changed.
 

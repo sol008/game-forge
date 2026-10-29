@@ -20,7 +20,8 @@ report table. Discoverability failures are bugs, exactly like crashes.
 - `{{SIDEQUEST_DIR}}/{{RANGE}}/*`. Every new file, helpers included, goes inside it. Never create files outside it.
 - `{{QA_REPORT}}`.
 - FIX_MODE `{{FIX_MODE}}`. With fix-content you may edit only clue, hint, marker and pointer content in
-  {{FIXABLE_FILES}}, adding target-language entries for each new line. Never touch the engine, the shared harness or other ranges.
+  {{FIXABLE_FILES}}, adding target-language entries for each new line. Never touch the engine, the shared harness or
+  other ranges.
 - Engine or harness bugs: report them; don't patch them.
 
 ## How to play (hard rules)

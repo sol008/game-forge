@@ -32,7 +32,7 @@ These rules exist so that can't happen again. Each one names the incident behind
 The engine conformance suite (`blueprint/conformance_suite.md`) is green. Every chapter builder hit the same engine bugs and wrote six different workarounds.
 
 ## Merges
-Use `forge-tools/merge_gate.sh <branch>`:
+Use `tools/forge/merge_gate.sh <branch>`:
 1. a `merge-tree` pre-check;
 2. merge;
 3. unit + validator + the merged area's tests;

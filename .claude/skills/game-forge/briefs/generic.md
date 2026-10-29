@@ -48,7 +48,8 @@ engine is yours. Then make it a check: a validator rule, a unit or e2e test, or 
 3. `{{I18N_CMD}}`: every line you added or changed has an entry in every target language (none when `langs` =
    [source]); 0 missing keys.
 4. Guide fragments updated if your change affects them; otherwise say "guide: not affected".
-5. Commit only your owned paths (`git add <paths>`, never `-A`) to `{{BRANCH}}` in `{{WORKTREE}}`. Report, then **STOP**.
+5. Commit only your owned paths (`git add <paths>`, never `-A`) to `{{BRANCH}}` in `{{WORKTREE}}`. Report, then
+   **STOP**.
 
 ## Time budget and stop rule
 Budget {{BUDGET_MIN}} min. At 75 %: finish the open item, start no new one. At 100 %: commit what is green, report

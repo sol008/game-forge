@@ -69,7 +69,7 @@ Add new lessons at the bottom of the matching section after every game, and comm
 ## Release
 - A rebuild shipped a stale font (99 vs 101 subset slices) → package step regenerates derived assets and checks glyph coverage.
 - A cloud team pushed fixes after the "final" build → freeze and drain all agents before building.
-- Release check: unzip into a path with spaces and CJK, boot every render mode → `forge-tools/release_gate.js`.
+- Release check: unzip into a path with spaces and CJK, boot every render mode → `tools/forge/release_gate.js`.
 - The game sat in a public scratch repo for 2 days → a new private repo per game, at intake.
 - The GitHub integration cannot create repos (403) and the git proxy cannot delete branches (403) → ask the user; never work around a policy denial.
 
