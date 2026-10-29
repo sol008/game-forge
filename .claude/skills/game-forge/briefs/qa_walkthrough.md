@@ -11,7 +11,8 @@ report table. Discoverability failures are bugs, exactly like crashes.
 
 ## Read first
 1. `{{SCREENPLAYS}}` for {{RANGE}}: the spec for each quest, its pointers and its rewards.
-2. `{{QUEST_DATA}}`, `{{PONR_DATA}}` (points of no return), `{{COLLECTIBLE_DATA}}`, and the ending thresholds.
+2. `{{QUEST_DATA}}`, `{{PONR_DATA}}` (points of no return), `docs/canon/collectibles.json` (the plan list; ids are
+   derived from quest ids), and the ending thresholds.
 3. `{{SHARED_HARNESS}}` (read-only): BFS walker, real-key input, player bot, terminal-state detector.
 4. `{{DISCOVERABILITY_RULES}}`: marker or glint, pointer, hit area ≥ 2 tiles, `hint` per step.
 
@@ -19,7 +20,7 @@ report table. Discoverability failures are bugs, exactly like crashes.
 - `{{SIDEQUEST_DIR}}/{{RANGE}}/*`. Every new file, helpers included, goes inside it. Never create files outside it.
 - `{{QA_REPORT}}`.
 - FIX_MODE `{{FIX_MODE}}`. With fix-content you may edit only clue, hint, marker and pointer content in
-  {{FIXABLE_FILES}}, adding en strings for each new line. Never touch the engine, the shared harness or other ranges.
+  {{FIXABLE_FILES}}, adding target-language entries for each new line. Never touch the engine, the shared harness or other ranges.
 - Engine or harness bugs: report them; don't patch them.
 
 ## How to play (hard rules)
@@ -27,7 +28,7 @@ report table. Discoverability failures are bugs, exactly like crashes.
 - **Never write quest flags, quest stages, items, gold or collectibles.** Read state only to assert.
 - Move by **BFS walking** over walkable tiles to the target, never by teleport. An unreachable target is a FAIL.
 - Interact with the **real interact key** (`{{INTERACT_KEY}}`) while facing the target. Wait for script idle first.
-- Choices through the real menu. Battles through the player-facing bot `{{BOT}}`, never a dumber one.
+- Choices through the real menu. Battles, if any, through the player-facing bot `{{BOT}}`, never a dumber one.
 - Buy through the shop UI. If you must simulate a purchase, assert the item is on that shelf at that price.
 - Detect any terminal state (game over, title, no state change for {{STALL_S}} s) and fail fast with the last step.
 
@@ -47,7 +48,8 @@ report table. Discoverability failures are bugs, exactly like crashes.
 ## Definition of done
 1. Every script PASS in **{{RENDER_MODE}}** using `{{FIXTURE}}`. If you ran in another mode for speed, spot-check every
    marker and glint in {{RENDER_MODE}} and say so.
-2. `{{VALIDATE_CMD}}`: 0 errors, 0 new warnings. en strings present for every line you added.
+2. `{{VALIDATE_CMD}}`: 0 errors, 0 new warnings. Every line you added has an entry in every target language (none
+   when `langs` = [source]).
 3. Report table complete, with every shortcut stated. Commit only your namespace (and fixes, if allowed) to
    `{{BRANCH}}`. Report, then **STOP**.
 4. Design calls (add a warning? move a quest?) go in the report with your proposed default. The lead decides; don't wait.
@@ -64,8 +66,8 @@ After a fix, re-run only the failing script, then one final run of all your scri
 - Never wait for human approval. The lead may pause, resume or stop you. Ship-without-you: {{SHIP_WITHOUT_YOU_AT}}.
 
 ## Tools and hygiene
-- Browser runs only via `forge-tools/governor.sh -- <cmd>`, with an explicit timeout ≥ 2× the expected run.
-- Logs and screenshots go to `{{SCRATCH}}/{{AGENT_ID}}/`, never the repo.
+- Browser runs only via `tools/forge/governor.sh -- <cmd>`, with an explicit timeout ≥ 2× the expected run.
+- Logs and screenshots go to `$SCRATCH/{{AGENT_ID}}/` (set in `docs/forge/env.md`), never the repo.
 - Only report APIs you can show by file:line.
 
 ## Report format (`{{QA_REPORT}}`)
@@ -78,7 +80,8 @@ Design calls proposed (with default):
 Ending/collectible totals checked: <n> found vs <n> expected
 ```
 
-> **Shorelight lesson.** Two QA branches both created `sidequests/lib.js`, so the merge conflicted and one became
+> **Shorelight lesson** (opening Shorelight itself: similar policy only).
+> Two QA branches both created `sidequests/lib.js`, so the merge conflicted and one became
 > `lib68.js`. The ch11 lighthouse stairs sat on wall tiles; the finale was unreachable on foot, and the old chapter
 > test had teleported past it. Items lay on bare tiles (扇貝殼, 懷錶), ~25 quests had no pointer, and ch5's 半邊井 心燈
 > was permanently missable. The QA sessions used shortcuts that were only accepted because they were declared.

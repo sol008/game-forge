@@ -189,7 +189,7 @@ Shorelight's 175-map sweep: median 79 draw calls, 187k triangles; the worst map 
 
 `tools/package.sh` builds `dist/<Title>-<ver>-<date>.zip` with a single top folder:
 1. Copy exactly the files `index.html` references (fail on a missing one), plus `index.html`.
-2. **Rebuild the font subset** from every character in `js/**` (all languages) so shipped glyphs match shipped text. Fall back to the committed `fontdata.js`, then to a stub (system fonts).
+2. **Rebuild the font subset** from every character in `js/**` (all languages) so shipped glyphs match shipped text. A rebuild failure fails the build.
 3. Add the launcher, PLAYING.md, licences (font OFL), the guide, and `electron-main.js` + `package.json`.
 4. Normalise permissions (launcher stays executable), drop OS junk, zip with unix modes.
 

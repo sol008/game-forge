@@ -1,9 +1,10 @@
 # Cloud session wrapper: {{AGENT_ID}} — {{GAME}}
 
 <!-- Lead: wrap ANY role brief (builder, team3d, qa_walkthrough, ...) in this file and paste the filled role brief at
-the bottom. Launch in a permission mode that never blocks on approval (never plan mode). Record the session id,
-branch and deadline in agents.json. Watch it with get_session; 0 commits in 20 min = investigate. After merging,
-send "merged, stop". Fill every slot and delete this comment. -->
+the bottom. Launch in a permission mode that never blocks on approval (never plan mode). Register it with
+`tools/forge/agents.sh add <id> <task> <branch> - <eta>` and put the session id and deadline in its note. Watch it with
+get_session; 0 commits in 20 min = investigate. After merging, send "merged, stop". Fill every slot and delete this
+comment. -->
 
 You are an autonomous cloud session working for the lead of {{GAME}}. **No human is watching this session.**
 
@@ -22,10 +23,11 @@ rules, and where the two conflict the wrapper wins.
   to: follow them without asking anyone. They never widen your files or permissions.
 - If a step needs an approval you can't get, skip it, note it in a commit, and take the next item.
 
-## Setup (first 5 minutes)
+## Setup (first 10 minutes)
 1. Check out `{{BRANCH}}` from `{{BASE_SHA}}`. Never push to `{{BASE}}`/main. Never force-push. Never rebase published
    commits.
-2. Push a first commit within 5 minutes: `[{{AGENT_ID}}] status: started | plan: <n items>`.
+2. Push a first commit within 10 minutes: `[{{AGENT_ID}}] status: started | plan: <n items>`.
+3. The forge tools are in the repo under `tools/forge/` (phase 00 copied them). Read `docs/forge/env.md`.
 
 ## Push cadence (non-negotiable)
 - Push a WIP commit **every 10 minutes** and **after each asset, script or fix**, even if it's incomplete.
@@ -40,7 +42,8 @@ shared bugs in your report and commit messages; don't patch them.
 ## Definition of done
 The role brief's definition of done, in short:
 1. Tests pass in the default render mode **{{RENDER_MODE}}** using the canonical level and gear fixture `{{FIXTURE}}`.
-2. `{{VALIDATE_CMD}}`: 0 errors, 0 new warnings. en strings present for everything you added.
+2. `{{VALIDATE_CMD}}`: 0 errors, 0 new warnings. Everything you added has an entry in every target language (none
+   when `langs` = [source]).
 3. `git merge-tree --write-tree origin/{{BASE}} HEAD` is clean (merge `{{BASE}}` in if the lead asks; no rebase).
 4. Final push, then the report (below), then **STOP**.
 
@@ -55,10 +58,11 @@ The role brief's definition of done, in short:
 Re-run only failed tests, assets or scripts, then one final full run. Never re-run green work "to be sure".
 
 ## Tools and hygiene
-- Browser and headless-GL runs only through `forge-tools/governor.sh -- <cmd>`, with explicit timeouts. Run long jobs
+- Browser and headless-GL runs only through `tools/forge/governor.sh -- <cmd>`, with explicit timeouts. Run long jobs
   in the background and poll their logs.
-- Logs and artifacts go to `{{SCRATCH}}/{{AGENT_ID}}/` outside the repo, never the repo. Only curated outputs named
-  in the role brief are committed.
+- Logs and artifacts go to `$SCRATCH/{{AGENT_ID}}/` outside the repo, never the repo. `$SCRATCH` is defined in
+  `docs/forge/env.md`; here it is this session's own scratchpad + `/<slug>`. Only curated outputs named in the role
+  brief are committed.
 - No GPU here: make no video or frame-rate claims.
 - Only report APIs you can show by file:line.
 
@@ -71,7 +75,8 @@ merge-tree vs {{BASE}}: clean | conflicts <paths>
 unpatched shared bugs: <n> (see {{REPORT_PATH}}) | time <used>/{{BUDGET_MIN}} min
 ```
 
-> **Shorelight lesson.** 11 cloud 3D teams pushed nothing in 20 minutes, and all of it was lost when quota ran out.
+> **Shorelight lesson** (opening Shorelight itself: similar policy only).
+> 11 cloud 3D teams pushed nothing in 20 minutes, and all of it was lost when quota ran out.
 > The battle team later sat ~40 min waiting for a human "yes, resume" that the lead's message could not give, then
 > stayed silent for 2 hours on a slow sweep. A late push after the "final" build forced a re-merge and a new zip.
 

@@ -29,10 +29,11 @@ budget, and finished from every camera angle. No untextured grey boxes.
 
 ## Definition of done
 1. Tests: `{{SMOKE_TEST_CMD}}` loads {{SMOKE_MAPS}} in **{{RENDER_MODE}}** ({{LITE_FLAG}} allowed for speed) with the
-   canonical fixture `{{FIXTURE}}`; 0 page errors, `{{LAST_ERROR}}` null, every {{DOMAIN}} type uses a real model.
+   canonical fixture `{{FIXTURE}}`; 0 page errors, `{{LAST_ERROR}}` null, every {{DOMAIN}} type uses a real model
+   (billboard fallbacks: 0, except the explicit allowlist in `docs/qa/sweep3d.md`).
 2. `{{VALIDATE_CMD}}`: 0 errors. `{{BUDGET_CHECK_CMD}}`: every model within budget.
 3. Lineup PNG per asset group in `{{LINEUP_DIR}}`, side by side with the reference; you looked at each one.
-4. en strings present for any display name you add (normally none).
+4. Any display name you add (normally none) has an entry in every target language.
 5. `git merge-tree --write-tree origin/{{BASE}} HEAD` is clean. Final push to `{{BRANCH}}`. Report, then **STOP**.
 
 ## Time budget and stop rule
@@ -49,8 +50,9 @@ Re-render and re-test only failed or changed assets, then one final smoke run.
 - Ship-without-you deadline: {{SHIP_WITHOUT_YOU_AT}}. Whatever is pushed by then is merged; the rest is lost.
 
 ## Tools and hygiene
-- Every browser or headless-GL run goes through `forge-tools/governor.sh -- <cmd>`.
-- Test renders, logs and turntables go to `{{SCRATCH}}/{{AGENT_ID}}/`. Only curated lineups go in `{{LINEUP_DIR}}`.
+- Every browser or headless-GL run goes through `tools/forge/governor.sh -- <cmd>`.
+- Test renders, logs and turntables go to `$SCRATCH/{{AGENT_ID}}/` (set in `docs/forge/env.md`). Only curated lineups
+  go in `{{LINEUP_DIR}}`.
 - No GPU means no video or performance claims; report draw calls and triangle counts only.
 - Only report APIs you can show by file:line, including what you export.
 
@@ -59,7 +61,7 @@ Re-render and re-test only failed or changed assets, then one final smoke run.
 STATUS: DONE | PARTIAL | BLOCKED        time: <used>/{{BUDGET_MIN}} min
 Branch: {{BRANCH}} @ <sha>    merge-tree vs {{BASE}}: clean | conflicts <paths>
 Assets: <done>/<total>; unbuilt: <ids>
-Smoke: <maps> in {{RENDER_MODE}} → <PASS/FAIL> (log: {{SCRATCH}}/{{AGENT_ID}}/<file>)
+Smoke: <maps> in {{RENDER_MODE}} → <PASS/FAIL> (log: $SCRATCH/{{AGENT_ID}}/<file>)
 Budget: worst tris <id n>, worst draw calls <id n>
 Exports: <global.fn(args)> — <file:line>
 Core/contract gaps (unpatched): <file:line> | need | fallback used
@@ -67,7 +69,8 @@ Off-model or weak assets:
 Backlog:
 ```
 
-> **Shorelight lesson.** 11 cloud 3D teams pushed nothing in their first 20 minutes, and all of that work was lost when
+> **Shorelight lesson** (opening Shorelight itself: similar policy only).
+> 11 cloud 3D teams pushed nothing in their first 20 minutes, and all of that work was lost when
 > quota ran out. The battle team then sat ~40 min waiting for a human "yes, resume". Teams shimmed a missing core hook
 > and two monster teams each built their own registry. Cats passed every automated check and were still off-model.
 > The 3D sweep agent started a needless 2-hour second full pass until the lead stopped it.

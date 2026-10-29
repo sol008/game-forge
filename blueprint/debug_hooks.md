@@ -191,11 +191,19 @@ Time played after the last save survives a quit. Loading an older save of the sa
 
 - The page shows total time, a per-activity bar, a per-chapter table and a boss table (attempts, wins, first-win attempt, time).
 - **Z (ok) copies a plain-text report.** It tries `navigator.clipboard`, then `execCommand('copy')`, then downloads `<CONFIG.id>-playstats-<date>.txt`, and it says which one worked.
-- The report header carries the title, version, date, language, render mode, quality, `G.fps` median and `stopReason`, so a pasted report is self-describing.
+- The report header carries the title, version, date, language, render mode, quality, `G.fps` median and `stopReason`, so a pasted report is self-describing. It also carries:
+  - `sha:` the build's git sha (stamped by the packager);
+  - `difficulty:` the current difficulty setting;
+  - `autobattle:` the auto-battle style and items on/off (`off` when unused or the game has no battles);
+  - `where: ch<N> <mapId> <x>,<y>`: the chapter, map id and tile at the moment of the copy.
+
+  Phase 12 parses these, so it never asks the player what the report already answers.
 - The report format is stable and machine-parsable (one `key: value` per line plus fixed-column tables). The forge's triage step (phase 12) parses it into balance and pacing notes. Example rows:
 
 ```
 title: Ember Road 0.3.0   lang: en   render: 3d/high   fps: 58
+sha: 4f2c9e1   difficulty: normal   autobattle: standard/items-on
+where: ch2 mill_yard 14,9
 total: 4:12:09   explore 41%  dialogue 27%  battle 24%  menu 6%  minigame 2%
 ch  time     battles  W/L/F      gameovers  retries
 2   0:48:10  31       29/1/1     1          1

@@ -1,6 +1,9 @@
 # Designer brief: {{DESIGN_KIND}} options for {{CHARACTERS}} — {{GAME}}
 
-<!-- Lead: DESIGN_KIND = character | pet | monster | art direction. Send only after the cast roster is locked.
+<!-- Lead: DESIGN_KIND = character | pet | monster | art direction | art-kit. Send only after the cast roster is
+locked. art-kit (2D games, phase 3): one agent per kit (tiles, objects, backdrops, UI), sent after the art direction
+is picked; CHARACTERS then names the kit, and the "Art kits" section below replaces Goal, Quality bar and Done.
+For every other kind, delete the "Art kits" section.
 PILOT_GATE = "stop until the lead sends GO or notes" (default) | "continue once every checklist line passes".
 Fill every slot and delete this comment. -->
 
@@ -12,7 +15,7 @@ the picked option, so build every option from code or data that can export a por
 ## Read first
 1. `{{REQUIREMENTS}}`: art style, render mode ({{RENDER_MODE}}), quality bar reference, cast roster and pick mode.
 2. `{{BIBLE}}` and its cultural guide `{{CULTURE_GUIDE}}`: role, personality, era, place.
-3. `{{CAST_DATA}}`: the machine-readable cast data (name, age, role, element, signature items). Single source.
+3. `docs/canon/cast.json`: the machine-readable cast data (name, age, role, element, signature items). Single source.
 4. `{{REF_PHOTOS_NOTES}}`: binding notes on the user's reference photos. Quality bar: {{QUALITY_BAR_REFS}}.
 5. `{{CONTRACTS}}`: portrait, sprite or rig formats the picked design must feed.
 
@@ -29,7 +32,7 @@ the picked option, so build every option from code or data that can export a por
 
 ## Quality bar (each option)
 - Full-body front view at a consistent body ratio; bust close-up; {{TURNAROUND}} (3D needs front, side and back).
-- Palette of 5–7 named swatches with hex codes; 3–5 costume callouts in {{SRC_LANG}} and en.
+- Palette of 5–7 named swatches with hex codes; 3–5 costume callouts in {{SRC_LANG}} and every target language.
 - Title, a one-line concept and a one-sentence cultural basis: what real dress or practice it draws on, and where the
   fantasy departs from it.
 - **Silhouette first:** recognisable in solid black at sprite scale ({{SPRITE_PX}} px) and different from the other
@@ -46,9 +49,25 @@ the picked option, so build every option from code or data that can export a por
 - {{CULTURE_RULES}}
 
 ## Metadata from the bible, never typed
-Name, age, role, element and signature items on every card are read from `{{CAST_DATA}}` by your generator. A
+Name, age, role, element and signature items on every card are read from `docs/canon/cast.json` by your generator. A
 hand-typed label is a bug. A design that changes a story fact (age, species, signature item) goes in the report as a
 proposal; don't put it on the card.
+
+## Art kits (`DESIGN_KIND = art-kit`, 2D)
+- **Goal.** The {{CHARACTERS}} kit for a 2D game: every tile, object, backdrop or UI piece in `{{KIT_ID_LIST}}` (the
+  ids the screenplays and contracts need), drawn in the picked art direction and **registered** in the gfx registry
+  (`Tiles`, `Objects`, `Backdrops`, UI skin) under its kit id. One option per id, not a gallery.
+- **Files you own.** `{{KIT_FILES}}` (registering art code) and `{{DESIGN_OUT_DIR}}/{{CHARACTERS}}/*` (contact sheet).
+  Never edit the registry core, maps or other kits.
+- **Pilot.** One sample of each category the kit covers, through the real renderer in the default mode, then
+  {{PILOT_GATE}}.
+- **Quality bar.** Palette and line from the art direction; readable at {{SPRITE_PX}} px; walls 2 cells thick;
+  interactables read as interactable (or carry a glint), and harvestables differ from their decorative twins;
+  multi-tile footprints declared in the def (`w`/`h`); variation from `U.hash`, never `Math.random`; UI text boxes
+  fit the longest target language.
+- **Done.** Every id in `{{KIT_ID_LIST}}` resolves in the registry (no placeholder), a contact sheet renders with 0
+  console errors and you looked at it, and the kit's id list is committed for the lead to **freeze before phase 4**.
+  Report missing ids instead of inventing them.
 
 ## Definition of done
 1. `{{DESIGN_CHECK_CMD}}` passes: every sheet renders headless with 0 console errors, card metadata equals cast data,
@@ -56,7 +75,7 @@ proposal; don't put it on the card.
 2. Tests: if the game is 3D ({{RENDER_MODE}}), the turnaround exists for every option. No game tests are needed;
    designs do not touch level or gear fixtures.
 3. Validator clean for your outputs: no missing images, no broken links in `{{GALLERY_ENTRY}}`.
-4. en strings present: every option name, concept line and callout has an en version.
+4. Every option name, concept line and callout has an entry in every target language (none when `langs` = [source]).
 5. Commit only your paths to `{{BRANCH}}` in `{{WORKTREE}}`. Report, then **STOP**.
 
 ## Time budget and stop rule
@@ -68,8 +87,9 @@ tweaking transforms by trial and error.
 Re-render only the sheets or options that changed or failed the check.
 
 ## Tools and hygiene
-- Rendering uses a browser, so run it only through `forge-tools/governor.sh -- <cmd>`.
-- Montages, test renders and logs go to `{{SCRATCH}}/{{AGENT_ID}}/`. Only final sheets go in `{{DESIGN_OUT_DIR}}`.
+- Rendering uses a browser, so run it only through `tools/forge/governor.sh -- <cmd>`.
+- Montages, test renders and logs go to `$SCRATCH/{{AGENT_ID}}/` (set in `docs/forge/env.md`). Only final sheets go
+  in `{{DESIGN_OUT_DIR}}`.
 - Look at every PNG you produce with the Read tool before calling it done.
 - Only report helper APIs you can show by file:line.
 
@@ -84,7 +104,8 @@ Export path to in-game assets (portrait/sprite/3D spec): <file:line>
 Backlog:
 ```
 
-> **Shorelight lesson.** Design v1 was rejected as "really bad": every option reused one generic face template. A sheet
+> **Shorelight lesson** (opening Shorelight itself: similar policy only).
+> Design v1 was rejected as "really bad": every option reused one generic face template. A sheet
 > labelled 白芷 as 17 while the bible said 19, because the label was typed by hand. 星河's signature scarf was missing
 > from the sprite. The in-game portrait didn't match the picked design until portraits were baked from the sheet's
 > own code. 糰子 got a full 10-option sheet and was cut six minutes later, before the roster was locked.
