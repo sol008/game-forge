@@ -10,7 +10,7 @@ These rules exist because of Shorelight:
 - the user had to ask "is it stuck?" or "are we using the machine?" about 10 times.
 
 ## Resources
-- **Probe first.** At setup, record `nproc`, RAM, GPU (headless is usually software WebGL, ~2 fps for 3D), Playwright, fonts and free disk space in `.forge/env.md`.
+- **Probe first.** At setup, record `nproc`, RAM, GPU (headless is usually software WebGL, ~2 fps for 3D), Playwright, fonts and free disk space in `docs/forge/env.md`.
 - **Pace mode** comes from requirements (default **balanced**):
 
   | Mode | Local agents | Cloud sessions |
@@ -27,7 +27,7 @@ These rules exist because of Shorelight:
 - One **git worktree or branch per local agent**. Cloud sessions use their own branch.
 - Each brief names an **exclusive file namespace**, including names for new files. Shared helpers are created by the lead *before* fan-out. In Shorelight, two QA branches both created `sidequests/lib.js`.
 - Agents commit their own files on their own branch. The lead merges green branches with `merge_gate.sh`.
-- Logs and artifacts go to the scratchpad or `.forge/`, never the repo. Add `*.log` and `.forge/` to .gitignore.
+- Logs and artifacts go to the scratchpad or `.forge/`, never the repo. Add `*.log` to .gitignore (durable records live in `docs/forge/`, lock files in `.forge/`).
 - No blanket `git add -A` WIP snapshots of the shared tree: they captured half-finished agent work in Shorelight. Risky features ship behind a default-off flag until verified.
 
 ## Registry, status, watchdog
@@ -44,7 +44,7 @@ These rules exist because of Shorelight:
 - **Watchdog.**
   - Wrap tests in `watchdog.sh` (90 s without output = fail).
   - `status.sh` flags agents with no log growth or commits for 20 min. The lead investigates and fixes **before the user could notice**: kill the hung child, re-brief, or take over.
-- Follow-ups for files another agent owns go in `.forge/followups.md` and are applied when it hands off.
+- Follow-ups for files another agent owns go in `docs/forge/followups.md` and are applied when it hands off.
 
 ## Cloud sessions
 - Launch with the full brief (`briefs/cloud_session.md`), in a permission mode that never blocks on approval. Never use plan mode.
