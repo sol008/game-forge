@@ -20,11 +20,11 @@ This phase runs **alongside phase 8**. The agent cannot hear audio and cannot ju
 
 ## Steps
 
-1. **Launch** (lead). Start 3–4 agents, each in its own worktree, using the brief template in `rules/orchestration.md`:
+1. **Launch** (lead). Start 3–4 agents, each in its own worktree, using `briefs/generic.md`:
    - **scenes**: local, no CPU load.
    - **music**: local; it needs a browser slot only while rendering.
    - **likeness**: local, render-heavy. Move it to the cloud if load is above target.
-   - **perf**: a cloud session (`briefs/cloud_session.md`), because A/B sweeps are CPU-heavy.
+   - **perf** (3D only): local, through the governor. A/B sweeps are CPU-heavy, so move it to a cloud session (`briefs/cloud_session.md`) when load is above target; that session comes out of the 25% contingency.
 
    Each brief carries a time budget and a pass cap.
 2. **Key scenes** (scenes agent). For each listed scene, polish:
@@ -46,8 +46,8 @@ This phase runs **alongside phase 8**. The agent cannot hear audio and cannot ju
    3. Write `docs/MUSIC.md`: notation conventions, the motif, each theme's form, and where each one plays.
 
    The agent can't hear, so it **works from theory plus measurement**. Render offline through the real audio graph, then check:
-   - peak below −3 dBFS;
-   - RMS within ±1.5 dB of the median background track;
+   - peak ≤ −1 dBFS;
+   - integrated loudness −20 ±3 LUFS-ish, as `tools/render_music.js` measures it;
    - loop seam: sample jump ≤ the p99.9 step, and RMS matched on both sides;
    - no clicks, and polyphony under the cap.
 
@@ -68,12 +68,12 @@ This phase runs **alongside phase 8**. The agent cannot hear audio and cannot ju
    - Ship batching **on by default** with a URL flag (`?nobatch`) to compare.
    - Prove it with an A/B sweep: same ids, same pixels within tolerance, 0 new errors, and a draw-call table before and after.
    - Without a GPU, report draw calls, triangles and CPU frame ms only. **Never** make fps or "smooth" claims, and never send a video.
-7. **Merge** (lead). Run `forge-tools/merge_gate.sh`, then the affected chapter tests in the default render mode. Perf work merges only after its A/B sweep is clean. A risky half-finished feature stays on its branch and is never swept into a WIP commit.
+7. **Merge** (lead). Run `tools/forge/merge_gate.sh` with `FORGE_TEST_CMD` set to `run.sh --quick` plus the affected chapter tests in the default render mode (phase 4 step 6). Perf work merges only after its A/B sweep is clean. A risky half-finished feature stays on its branch and is never swept into a WIP commit.
 
 ## Outputs
 
 - Polished scene scripts in the chapter files, and their translations; `docs/qa/scenes.md`.
-- Signature themes in the song table; `docs/MUSIC.md` with a measurement table (peak, RMS, Δ vs median, seam).
+- Signature themes in the song table; `docs/MUSIC.md` with a measurement table (peak, loudness, Δ vs median, seam).
 - Previews in the scratchpad (`music/previews/*.mp3`), sent to the user. They are not committed.
 - `docs/qa/likeness.md` plus side-by-side PNGs in `docs/r3d_reports/cast/`.
 - The batching module and its flag; `docs/qa/sweep3d.md` § Batching (A/B table).
@@ -83,8 +83,8 @@ This phase runs **alongside phase 8**. The agent cannot hear audio and cannot ju
 Automated:
 - [ ] Draw-call and triangle budgets met on every map (a sweep with batching on).
 - [ ] A/B sweep: 0 new errors and matching node ids.
-- [ ] Every signature and ambient track: no clipping, RMS in band, loop seams pass.
-- [ ] Chapter tests for the touched scenes are green in the default render mode. Screenplay cue assertions pass. Translation coverage has not dropped.
+- [ ] Every signature and ambient track: peak ≤ −1 dBFS, loudness −20 ±3 LUFS-ish, loop seams pass.
+- [ ] Chapter tests for the touched scenes are green in the default render mode. Screenplay cue assertions pass. 0 missing i18n keys.
 - [ ] Appearance-facts lint: 0 conflicts.
 
 Lead review:
@@ -109,4 +109,5 @@ Human (non-blocking):
 
 - Wall clock: about **1.5 h**, overlapping phase 8.
 - Shorelight actuals: scenes 45 min; music about 1 h; face pass about 36 min per round; perf about 1–2 h in the cloud.
-- Cost: 1 cloud session for perf ($10–40), plus 3 local agents of about 1 h each.
+- Local: 3–4 agents × ~1.5 h ≈ **5–6 agent-hours** (`tools/forge/cost_estimate.md` row 9).
+- Cloud: $0 in the forecast; a perf overflow session (one C, $5–40) comes out of the contingency.

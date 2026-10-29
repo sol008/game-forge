@@ -12,7 +12,7 @@ Give every registered object, character, creature, environment and battle view a
 - Registry dumps: every object type, sprite id and monster id the content uses.
 - Conformance suite green.
 
-**2D games** skip the cloud part but keep the shape: the same contract smoke test (one sample per art kit), the same ownership table and lineup review, with art agents working locally in worktrees.
+**2D games** skip the cloud teams: their art kits (tiles, objects, backdrops, UI) were made in phase 3 and their ids frozen before phase 4. Phase 5 for 2D is only an **art-kit smoke test** (one sample per kit through the real renderer, default mode) plus a **lineup** review against the references.
 
 ## Steps
 
@@ -22,10 +22,10 @@ Give every registered object, character, creature, environment and battle view a
    - **registry ownership** when a domain is split (e.g. monsters A/B): the lead or team A owns the single registry;
    - budgets: triangles per class, draw calls per model after merge; animated parts as named children;
    - the instance interface (create, facing, move blend, play clip, expressions, opacity, lights, dispose) and the clip list the battle view expects;
-   - coverage: every registered id gets a model; fallbacks only on an allowlist;
+   - coverage: every registered id gets a model; 0 fallbacks, except ids on the explicit allowlist in `docs/qa/sweep3d.md`;
    - report format: `docs/r3d_reports/<team>.md` + `<team>_lineup.png`.
 2. **Team split** (lead). By domain, scaled to the game. Shorelight's 11 for scale: characters, animals/pets, architecture A/B, nature, props A/B, monsters A/B, environment, battle view + VFX. Write `docs/r3d/manifests/<team>.json`: ids to cover, reference images, budget, owned files. ETA = ids remaining × measured minutes per asset.
-3. **Contract smoke test** (lead, before any team launches). Build **one sample asset per team type** through the real core and run `tools/r3d/contract_smoke.js` (through the governor, default and lite mode). It must prove:
+3. **Contract smoke test** (lead, before any team launches). Build **one sample asset per team type** through the real core and run `tools/r3d/contract_smoke.js` (through `tools/forge/governor.sh --`, default and lite mode). It must prove:
    - variants: `o.v % variants` picks a variant and cloning keeps it;
    - material isolation: fading or tinting one instance does not change shared materials;
    - rotation applies to geometry **and** to the model's lights;
@@ -41,7 +41,7 @@ Give every registered object, character, creature, environment and battle view a
    - exclusive files (`js/r3d/<team>*.js`, `tools/r3d/<team>/`, `docs/r3d_reports/<team>*`); core bugs go in the report, never shimmed;
    - time budget, stop rule ("stop when the manifest is covered or at the deadline"), and "merged, stop" means stop pushing;
    - renders go through the team's own headless viewer; no performance or video claims without a GPU.
-5. **Register** (lead). Each session id and branch goes to `.forge/agents.json` and `docs/r3d_reports/TEAMS.txt`.
+5. **Register** (lead). Each session id and branch goes to `tools/forge/agents.sh add` (log `-`) and `docs/r3d_reports/TEAMS.txt`.
 6. **Monitor** (lead, each check-in). `git fetch`; per team: commits, last push time, manifest coverage. That is the status signal, not chat pings. 0 commits in 20 min → `get_session` status; blocked → fix the cause once (never a second "resume?" loop).
 7. **Merge early and often** (lead). Per team, as soon as a coherent batch lands:
    1. `git merge-tree --write-tree main r3d-<team>` clean;
@@ -49,10 +49,10 @@ Give every registered object, character, creature, environment and battle view a
    3. **combined registry check**: every id builds in the real core with 0 errors (all teams together, not per team);
    4. **lineup render vs references**, viewed by the lead; off-model → a polish brief to that team;
    5. core bugs the team reported → the lead fixes once and tells every team;
-   6. done → send "merged, stop" (saves quota). Partial merges are fine.
+   6. done → send "merged, stop" (saves quota) and `tools/forge/agents.sh done <id> merged`. Partial merges are fine.
 8. **Likeness pass** (lead or 1 local agent). Party and pets: side-by-side sheet vs portrait vs 3D (phase 3 step 10). Budget a face pass up front.
 9. **Performance** (lead). Batching on by default with a URL flag to compare; draw-call budget per map; a lite 3D smoke on every map runs here, the full sweep in phase 8.
-10. **Ship-without-you deadline** (lead). At the deadline, merge whatever is pushed and stop the team; the billboard fallback covers gaps, and they are listed in the status table.
+10. **Ship-without-you deadline** (lead). At the deadline, merge whatever is pushed and stop the team (`tools/forge/agents.sh done <id> stopped`, note "deadline"); the billboard fallback covers gaps, which go on the allowlist in `docs/qa/sweep3d.md` and in the status table.
 
 ## Outputs
 
@@ -64,7 +64,7 @@ Give every registered object, character, creature, environment and battle view a
 
 Per team (automated, then lead review):
 - [ ] `merge-tree` clean; unit + validator green after the merge.
-- [ ] Combined registry check: every manifest id builds, 0 errors; fallbacks only on the allowlist.
+- [ ] Combined registry check: every manifest id builds, 0 errors; 0 fallbacks except the allowlist in `docs/qa/sweep3d.md`.
 - [ ] Budgets met (triangles, draw calls per model).
 - [ ] Lineup render reviewed against the references (lead).
 
@@ -85,4 +85,6 @@ Phase: every team merged and told to stop; lite 3D smoke passes on every map; al
 ## Time/cost estimate
 
 - 3–4 h wall clock, overlapping phase 4. Smoke test ~30 min of lead time. Once running, 10 of 11 Shorelight teams merged within ~50 min of each other.
-- Cost: ~11 cloud sessions at about $5–40 each (the characters team alone ~$35): forecast $100–400 at G0b. In `frugal` pace, run 3–4 teams at a time.
+- Cloud: ~11 sessions at about $5–40 each (the characters team alone ~$35): forecast **$55–440** at G0b (`tools/forge/cost_estimate.md` row 5).
+- Local: lead merges, about 1–2 agent-hours.
+- In `frugal` pace (or with no `create_session`), run the teams locally, 3–4 at a time.

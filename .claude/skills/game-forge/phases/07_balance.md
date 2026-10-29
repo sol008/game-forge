@@ -10,6 +10,8 @@ Four instruments:
 - **Normal-player economy simulator**: the level and gold the player has at each boss.
 - **Chain test**: New Game onward with carried state, field encounters on, and no assists.
 
+**No combat** (`CONFIG.battle` absent): the bot, boss simulator and economy simulator are replaced by the **puzzle solver** `tools/sim/solver.js`. It proves that every puzzle is solvable from `chapterStart(ch)` with only what the player has there, and that every step is hinted. The chain test still applies. See the non-combat path in step 1 and the exit gate.
+
 **When.** Start as soon as 2 chapters pass their definition of done, and keep running for the rest of the build. Each chapter is gated on its own results. Do not wait for the whole game.
 
 ## Inputs
@@ -24,9 +26,11 @@ Four instruments:
 
 1. **Launch** (lead). Start 2 local agents with `briefs/balance.md`:
    - **A, "bosses"**: bot plus boss simulator. Needs no browser.
-   - **B, "economy"**: economy simulator plus chain test. Needs 1 browser slot, taken through `forge-tools/governor.sh`.
+   - **B, "economy"**: economy simulator plus chain test. Needs 1 browser slot, taken through `tools/forge/governor.sh --`.
 
-   Each gets its own worktree and an exclusive file namespace: `tools/sim/*`, `tools/test/full_chain.js`, `docs/BALANCE.md`, `docs/qa/full_chain.md`. Register both with `forge-tools/agents.sh add`.
+   **Non-combat path:** A, "solver", builds `tools/sim/solver.js` instead (steps 2–6 do not apply): for each chapter it searches from `chapterStart(ch)` over the real puzzle data and the items, flags and abilities reachable in that chapter, and reports per puzzle: solvable yes/no, the shortest solution, and any step whose required clue has no `hint`. B runs only the chain test (step 7).
+
+   Each gets its own worktree and an exclusive file namespace: `tools/sim/*`, `tools/test/full_chain.js`, `docs/BALANCE.md`, `docs/qa/full_chain.md`. Register both with `tools/forge/agents.sh add`.
 2. **Bot = player AI** (A). Build or upgrade the engine's auto-battle module. A owns it, handed over by the engine owner and recorded in the agent registry. Its policy, in priority order:
    1. revive;
    2. healer heals;
@@ -85,7 +89,11 @@ Four instruments:
    - Watchdog: a progress line every 30 s; fail fast on any terminal state (game over, title, 3 min with no state change); dump the state on failure.
 
    Extend the run one chapter boundary at a time as chapters merge.
-8. **Gate each chapter** (lead) when A and B report (see Exit gate). Add a fast `--check` mode (n = 50, the chapter's bosses only) to `forge-tools/merge_gate.sh` for any merge that touches data, enemies or shops.
+8. **Gate each chapter** (lead) when A and B report (see Exit gate). From then on, the chapter's merge command (phase 4 step 6) appends the fast balance check (n = 50, the chapter's bosses only; for non-combat games, the solver for that chapter), so any later merge that touches data, enemies, shops or puzzles is re-checked:
+   ```
+   FORGE_TEST_CMD="bash tools/test/run.sh --quick && tools/forge/governor.sh -- node tools/test/chapters/chN.test.js && bash tools/lint/freeze.sh --verify chN && bash tools/test/run.sh --balance chN" tools/forge/merge_gate.sh <branch>
+   ```
+   Never edit `tools/forge/merge_gate.sh` per game.
 9. **Feel list** (A). Write the things a sim can't judge (boss speed, fight length, how tense the KO rate feels) to `docs/BALANCE.md` § "Needs a human playtest". Phase 10 copies the list into the release notes.
 
 ## Outputs
@@ -98,13 +106,14 @@ Four instruments:
   - auto-battle results for each style and with items on and off;
   - the needs-a-human list.
 - `docs/qa/full_chain.md`: per-boundary level, gold, key items and collectibles; boss level vs BALANCE; every help logged; run history.
-- `tools/sim/boss.js`, `tools/sim/economy.js`, `tools/sim/fights.js` (the per-fight hints registry), `tools/test/full_chain.js`.
+- `tools/sim/boss.js`, `tools/sim/economy.js`, `tools/sim/fights.js` (the per-fight hints registry), `tools/test/full_chain.js`. Non-combat games: `tools/sim/solver.js` instead of the three sims.
+- `run.sh --balance chN` wired to the sims (or the solver).
 - The engine auto-battle module, plus its unit tests (item rules; a warning that names one member).
 - Boundary saves in the scratchpad (`chain/saves/chNN.json`). Never commit them.
 
 ## Exit gate
 
-Per chapter, all automated:
+Per chapter, all automated (combat games; non-combat games use the solver gate below plus the chain test):
 - [ ] Every boss is at **86–94%** at its canonical state (n ≥ 300), or has a written exception.
 - [ ] 0 wins with a dead party.
 - [ ] Normal player: within **±1 level** of each boss's level, and affords **≥ 90%** of the assumed gear by price.
@@ -114,6 +123,10 @@ Per chapter, all automated:
   - the chapter number goes up by exactly 1;
   - no NaN or unknown ids;
   - the previous chapter's main quest is done.
+
+Non-combat games, per chapter:
+- [ ] Solver: every puzzle solvable from `chapterStart(ch)`; every required step has a `hint`; 0 dead ends.
+- [ ] Chain test as above (the boundary checks hold; no assist).
 
 Whole game, before phase 8:
 - [ ] The chain runs New Game → every ending with no assist.
@@ -138,4 +151,5 @@ No human gate. Feel goes to G4 through the needs-a-human list.
 - Each later chapter: about 20–40 min.
 - A full boss sweep (36 bosses × 400 fights): about 10–20 min of CPU in Node, with no browser.
 - Chain test: about 4–5 min per chapter at test speed. The full game took ~50 min in Shorelight.
-- Cost: 2 local agents running in the background for the whole build; no cloud sessions. Forecast it as about 2 agent-hours per 4 chapters in G0b.
+- Local: 2 agents running in the background for the whole build, ~4–6 h each ≈ **8–12 agent-hours** (`tools/forge/cost_estimate.md` row 7). Forecast that at G0b, scaled to the game as the worksheet says (a 2-chapter mini is roughly 1/5 of it).
+- Cloud: $0.

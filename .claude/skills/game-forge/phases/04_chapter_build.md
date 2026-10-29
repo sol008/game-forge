@@ -15,7 +15,7 @@ Hard preconditions (checked by the lead before the first launch):
 
 ## Steps
 
-1. **Plan the wave** (lead). One work package per chapter (split a chapter > ~2,000 screenplay lines into two packages by map group, each with its own file). Register every package in `.forge/agents.json`: id, chapter, branch, worktree, log path, ETA.
+1. **Plan the wave** (lead). One work package per chapter (split a chapter > ~2,000 screenplay lines into two packages by map group, each with its own file). Register every package with `tools/forge/agents.sh add <id> <task> <branch> <log> <eta>` (put the chapter and worktree in the task text, e.g. `ch5 build ../wt/ch5`).
 2. **Worktrees** (lead). `git worktree add ../wt/chN -b build/chN` per package. Exclusive namespace per builder:
    - `js/maps/chN_<slug>.js` (maps, quests, chapter-local data prefixed `cN_*`, `t_cN_*`);
    - `tools/test/chapters/chN.test.js`;
@@ -23,7 +23,7 @@ Hard preconditions (checked by the lead before the first launch):
    - scratch output in `$SCRATCH/chN/`.
    Never: engine files, shared data files, other chapters, `index.html` (the lead pre-registers chapter files).
 3. **Canary** (when there are ≥ 6 chapters). Launch the first 2 builders; after their first test run (~20 min), fold any brief or engine fixes into `BUILDER_BRIEF.md`, then launch the rest.
-4. **Launch builders** (local agents, `briefs/builder.md` + `docs/BUILDER_BRIEF.md`). Up to ~11 at once; writing is CPU-light, but **every browser test runs through `governor.sh`** (slots = nproc − 1), so tests queue instead of thrashing. Each brief states:
+4. **Launch builders** (local agents, `briefs/builder.md` + `docs/BUILDER_BRIEF.md`). Up to ~11 at once; writing is CPU-light, but **every browser test runs through `tools/forge/governor.sh -- …`** (slots = nproc − 1), so tests queue instead of thrashing. Each brief states:
    - chapter, screenplay path and **frozen hash**; owned files; time budget (90 min);
    - **definition of done** (below), then commit on own branch, report, **stop**; extra ideas go to the report's backlog;
    - re-run scope: only the failing segment (`--from`, `--only`);
@@ -34,12 +34,12 @@ Hard preconditions (checked by the lead before the first launch):
    - [ ] validator: 0 errors, 0 warnings in own files;
    - [ ] chapter test PASS **in the default render mode** (lite variant allowed), started from `chapterStart(ch)`; any ad-hoc level, gear or gold boost fails the run;
    - [ ] the test includes a **real key-press** path (dialogue and one interaction with autoplay off), waits for script idle before input, never teleports across the critical path, asserts the hand-off to the next chapter and ends there;
-   - [ ] audio and scene assertions generated from `docs/story/cues.json` for this chapter pass;
-   - [ ] every side quest exercised; every collectible awarded through the engine API with an id from `collectibles.json`;
+   - [ ] the `<!-- cue: -->` assertions for this chapter (`docs/story/cues.json`, checked by `tools/test/spec_conformance.js`) pass;
+   - [ ] every side quest exercised; every collectible awarded through the engine API with its derived id (`<collectibleId>_<quest suffix>`, e.g. `q_c3_bell` → `ember_c3_bell`), never hand-typed; the validator checks it against `docs/canon/collectibles.json`;
    - [ ] every quest step has `hint` metadata; every interactable has a marker and a hit area of ≥ 2 tiles;
    - [ ] every one-way transition uses the point-of-no-return API;
    - [ ] every map screenshotted (via `shoot.js` through the governor) and viewed;
-   - [ ] i18n stubs regenerated for the chapter; display text is whole static literals;
+   - [ ] i18n stubs regenerated for the chapter: an entry in every target language (none when `langs` = [source]); display text is whole static literals;
    - [ ] screenplay hash re-checked at done.
    Sketch of the fixture rule the test uses:
    ```js
@@ -49,7 +49,11 @@ Hard preconditions (checked by the lead before the first launch):
    await game.waitIdle();
    await game.pressKey('z');                   // real input path, autoplay off
    ```
-6. **Merge loop** (lead, continuous). For each builder reporting FINISHED: `forge-tools/merge_gate.sh build/chN` → `merge-tree` pre-check → merge → unit + validator + conformance + that chapter's test (through the governor) → abort on red. Never merge red; never `git add -A` on the lead tree.
+6. **Merge loop** (lead, continuous). For each builder reporting FINISHED:
+   ```
+   FORGE_TEST_CMD="bash tools/test/run.sh --quick && tools/forge/governor.sh -- node tools/test/chapters/chN.test.js && bash tools/lint/freeze.sh --verify chN" tools/forge/merge_gate.sh build/chN
+   ```
+   That is `merge-tree` pre-check → merge → `run.sh --quick` (validator, unit, conformance) + that chapter's test (through the governor) + the screenplay hash check → roll back on red. Once phase 7 gates the chapter, append `&& bash tools/test/run.sh --balance chN`. Never merge red; never `git add -A` on the lead tree.
 7. **Engine bugs** (lead). Fix once in the engine, add a conformance case, broadcast "fixed in <sha>; workarounds optional" to every builder.
 8. **Canon changes mid-build** (lead). A cut, a pick, a renamed item: send **one** standard change brief to all builders (cut list, locked looks, new ids). Propagate cuts without asking the user. Late screenplay edits: bump `FREEZE.md`, send the diff to that builder only.
 9. **Follow-ups** (lead). Fixes for files a builder still owns go to `docs/forge/followups.md` keyed by owner; flush on hand-off.
@@ -57,7 +61,7 @@ Hard preconditions (checked by the lead before the first launch):
     - No log growth or commit for 20 min → read the log tail and test progress; a stalled child process may be killed so the agent wakes.
     - The same stop point in two runs is a real bug, not a flake.
     - Load under target with backlog → start the next package: translation of merged chapters (phase 6), balance once 2 chapters merged (phase 7, `briefs/balance.md`).
-11. **First playable** (lead). When chapters 0–1 (or the first two) are merged: run the release gate in lite form and send the milestone zip automatically.
+11. **First playable** (lead). When chapters 0–1 (or the first two) are merged and New Game reaches the last merged chapter's hand-off: freeze `main` at a sha, package from it and run the release gate (phase 11, First playable milestone), then send the zip automatically. **No drain:** builders keep working on their branches.
 
 ## Outputs
 
@@ -65,14 +69,14 @@ Hard preconditions (checked by the lead before the first launch):
 - `tools/test/chapters/chN.test.js` per chapter.
 - i18n stub entries per chapter (filled in phase 6).
 - Curated `screenshots/chN/` (lead copies chosen shots; raw shots stay in `$SCRATCH`).
-- Updated `.forge/agents.json`, `docs/forge/followups.md`.
+- Updated registry (`tools/forge/agents.sh`; snapshot in `docs/forge/AGENTS.md` at each check-in), `docs/forge/followups.md`.
 
 ## Exit gate
 
-Per chapter (automated, enforced by `merge_gate.sh`):
+Per chapter (automated, enforced by `tools/forge/merge_gate.sh` with the `FORGE_TEST_CMD` above):
 - [ ] Chapter test PASS in the default render mode, from `chapterStart(ch)`, with the real key-press path.
 - [ ] Validator 0 errors, 0 warnings; screenplay hash unchanged since launch (or re-briefed).
-- [ ] i18n stubs present for every new display string.
+- [ ] i18n stubs present for every new display string, in every target language.
 
 Phase (all chapters merged): full validator clean on `main`; every chapter test green on `main`; first-playable zip sent. No human gate.
 
@@ -95,4 +99,5 @@ Phase (all chapters merged): full validator clean on `main`; every chapter test 
 ## Time/cost estimate
 
 - 1–2 h wall clock with the governor. A chapter's full test takes 10–15 min alone on the machine; finishing a chapter took 30–90 min, mostly test → fix → re-run the failing segment.
-- Cost: up to ~11 local agents for 1–2 h; overflow CPU-heavy re-runs to cloud only in `max-speed` pace.
+- Local: about 1–2 agent-hours per chapter (11 chapters ≈ 11–22 agent-hours), up to ~11 agents at once (`tools/forge/cost_estimate.md` row 4).
+- Cloud: $0 in the G0b forecast. In `max-speed` pace, CPU-heavy re-runs may overflow to cloud; that comes out of the 25% contingency.

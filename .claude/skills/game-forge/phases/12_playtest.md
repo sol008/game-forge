@@ -26,7 +26,7 @@ The loop repeats until the user says "ship" (G5).
 
   Notes may come in any language and with any amount of detail.
 - The release's tag, `docs/RELEASE_NOTES.md` ("please check"), `docs/VERIFICATION.md`, `docs/BALANCE.md`.
-- `forge-tools/shoot.js`, the guide's annotated maps, `forge-tools/governor.sh --prio` (the priority lane for user-reported bugs).
+- `tools/forge/shoot.js`, the guide's annotated maps, `tools/forge/governor.sh --prio -- <cmd>` (the priority lane for user-reported bugs).
 
 ## Steps
 
@@ -58,16 +58,16 @@ The loop repeats until the user says "ship" (G5).
      4. Send the image with at most 3 lines.
    - **Rules and minigames.** Answer from the guide's generated minigame section: scoring, best answers, and what is random. If the section is missing or wrong, that is a guide bug and gets a row.
    - **Every question is a discoverability signal.** Add a row: an in-game pointer (NPC line, glint, hint tag, quest-log text), plus a guide fix.
-4. **Reproduce** (one helper per bug, in a worktree, through `governor.sh --prio`).
+4. **Reproduce** (one helper per bug, in a worktree, through `tools/forge/governor.sh --prio --`).
    - Reproduce in the player's settings first, then in every render mode.
    - Write the repro as a **failing test that encodes the spec** (what should happen), never the current behaviour.
    - CPU-heavy 3D repros go to a cloud session (`briefs/cloud_session.md`).
-5. **Fix** (same helper; as many in parallel as the governor allows; brief template from `rules/orchestration.md`).
+5. **Fix** (same helper; as many in parallel as the governor allows; brief from `briefs/generic.md`).
    - Definition of done:
      - the new test passes and fails on the pre-fix sha;
      - validator 0 errors and 0 warnings;
      - the touched chapter tests pass in the default render mode;
-     - every new line has its translations;
+     - every new line has an entry in every target language (none when `langs` = [source]);
      - guide fragments are updated if affected.
    - **Hunt siblings.** Grep every chapter for the same pattern.
    - Prefer an engine invariant to a per-scene patch.
@@ -93,7 +93,8 @@ The loop repeats until the user says "ship" (G5).
    git -C "$FORGE" push origin main         # straight to main, as decided
    ```
    If a bug is purely game-specific, write "game-specific: <reason>" in the row instead.
-8. **Ship the batch** (lead). Merge with `merge_gate.sh`. When the batch is done, or an S1 is fixed, run **phase 11** as the next release candidate. The message maps each user note to its fix ("你說的 X → 已修正，並新增檢查 Y").
+   If the push to `sol008/game-forge` is denied, append the lesson to `docs/forge/lessons_for_forge.md` in the game repo instead, record "forge push denied" in the row, and list those lessons in the final report.
+8. **Ship the batch** (lead). Merge with `tools/forge/merge_gate.sh` (the `FORGE_TEST_CMD` of phase 4 step 6, plus the new regression checks). When the batch is done, or an S1 is fixed, run **phase 11** as the next release candidate. The message maps each user note to its fix ("你說的 X → 已修正，並新增檢查 Y").
 9. **Close the rows** (lead). Each row is closed with: the check id, the fix sha, the forge commit sha (or the reason), and the zip version that carries it.
 
 ## Outputs
@@ -111,7 +112,7 @@ Automated, per bug:
 - [ ] The validator still has 0 warnings.
 
 Per batch:
-- [ ] Every general lesson has a game-forge commit sha.
+- [ ] Every general lesson has a game-forge commit sha, or an entry in `docs/forge/lessons_for_forge.md` when the push was denied.
 - [ ] Every spatial answer was sent as a rendered image.
 - [ ] No S1 or S2 rows are open.
 - [ ] Phase 11's release gate is green.
@@ -140,4 +141,5 @@ Human:
 - A bug with the priority lane: about 15–60 min. In Shorelight the level-up refill took 11 min and 扇貝殼 took 5 min.
 - A forge lesson commit: about 5 min.
 - Release candidate: about 15 min (phase 11).
-- Cost: local helpers, one per bug. A cloud session only for heavy 3D repros, at roughly $5–40 each.
+- Local, per round: 4–8 helpers × 1–2 h ≈ **4–16 agent-hours** (`tools/forge/cost_estimate.md` row 12).
+- Cloud, per round: 0–2 overflow sessions for heavy 3D repros, **$0–80**.

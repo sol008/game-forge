@@ -10,7 +10,7 @@ The game is played the way a player plays it: real walking, real key presses, th
 
 - All chapters merged. Phase 7's chain test is green from New Game to every ending.
 - Validator at **0 errors and 0 warnings**. Get warnings to 0 first, so that new ones stand out.
-- Frozen screenplays (with their version hash), story bible, glossary, appearance-facts file, timeline file.
+- Frozen screenplays (with their version hash), story bible, `docs/i18n/GLOSSARY.md`, `docs/canon/appearance_facts.json`, `docs/canon/timeline.json`, `docs/canon/collectibles.json`.
 - The engine debug surface (`blueprint/debug_hooks.md`) and `blueprint/qa_tools.md`.
 - `rules/testing.md`, `rules/discoverability.md`.
 
@@ -74,14 +74,14 @@ The game is played the way a player plays it: real walking, real key presses, th
    - **Fix overflow in the UI code** with fit, wrap and shrink helpers. Never shorten strings.
    - Run a pixel-diff regression of the source-language screens.
 9. **Screenplay conformance** (1 local agent).
-   - Audit `docs/story/cues.json` (scene → required cue and rules, from phase 1). Every entry needs a passing assertion in the **default render mode**: entering scene X plays BGM or ambience Y; "no melody" rules; no minigame on sacred content; the rewards and encounters each scene lists. Add any that phase 4 missed.
+   - Audit `docs/story/cues.json` (extracted by `tools/lint/screenplay.js` from the screenplays' `<!-- cue: -->` lines). Every entry needs a passing assertion in `tools/test/spec_conformance.js` in the **default render mode**: entering scene X plays BGM or ambience Y; "no melody" rules; no minigame on sacred content; the rewards and encounters each scene lists. Add any that phase 4 missed.
    - Grep the tests for assertions of absence ("no BGM", "no item") that the spec doesn't state, and delete them.
    - A test encodes the spec, never the current behaviour. If code and spec disagree, the code is wrong unless the lead changes the spec and records it.
 10. **Merge** (lead, as each branch lands).
-    - Run `forge-tools/merge_gate.sh`: `merge-tree` pre-check, unit tests, validator, then that range's side scripts.
-    - Send the cloud session "merged, stop, don't push further".
+    - Run `FORGE_TEST_CMD="bash tools/test/run.sh --quick && <that range's side scripts, each through tools/forge/governor.sh -->" tools/forge/merge_gate.sh <branch>`: `merge-tree` pre-check, then validator, unit and conformance, then the side scripts.
+    - Send the cloud session "merged, stop, don't push further", then `tools/forge/agents.sh done <id> merged`.
     - Re-run the merged scripts locally in the background, with a timeout of at least 2× the expected time.
-11. **Milestone build** (lead). Run phase 11's release gate and send the **"after QA wave"** zip.
+11. **Milestone build** (lead). Freeze `main` at a sha and run phase 11 for the **"after QA wave"** milestone: package from that sha, pass the release gate, send the zip. **No drain:** agents keep working on their branches.
 
 ## Outputs
 
@@ -103,10 +103,10 @@ All automated. Phase 11 refuses to package unless each holds:
 - [ ] 0 discoverability violations.
 - [ ] 0 flags read but never set.
 - [ ] Every point of no return that closes content warns, and both choices are tested.
-- [ ] Validator 0 errors and 0 warnings. Translation coverage ≥ 99.9%. 0 measured overflows.
+- [ ] Validator 0 errors and 0 warnings. 0 missing i18n keys (coverage % is informational). 0 measured overflows.
 - [ ] Every screenplay cue assertion passes.
 - [ ] Chain test in the default render mode: PASS to every ending.
-- [ ] 3D sweep: 0 errors, 0 fallbacks, NaN 0.
+- [ ] 3D sweep: 0 errors, NaN 0, 0 fallbacks except the explicit allowlist in `docs/qa/sweep3d.md`.
 
 Human gate: none. G4 follows the QA-wave zip.
 
@@ -128,6 +128,6 @@ Human gate: none. G4 follows the QA-wave zip.
 ## Time/cost estimate
 
 - Wall clock: about **2 h**. Shorelight's cloud ranges took 47, 61, 65 and 108 min; size the largest one down.
-- Cloud: 4 walkthrough sessions plus an optional sweep session, at roughly $10–40 each, so **$40–200**.
-- Local: 4–6 agents at 30–60 min each. Proofreading and layout are CPU-light.
+- Cloud: 4 walkthrough sessions (47–108 min each): **$20–160** (`tools/forge/cost_estimate.md` row 8). An optional cloud sweep session (one more C, $5–40) comes out of the 25% contingency.
+- Local: 4–6 agents × ~2 h ≈ **8–12 agent-hours**. Proofreading and layout are CPU-light.
 - Lead: about 1 h of merging and design calls.

@@ -6,7 +6,7 @@ Ship the player-facing and reviewer-facing documents. All four are **always** ma
 
 | Document | What it is |
 |---|---|
-| Strategy guide | Generated from game data. Every map is annotated; every minigame is explained; it has charts. |
+| Strategy guide | Generated from game data. Every map is annotated; every minigame and puzzle is explained; it has charts wherever the data exists. |
 | `PLAYING.md` | The player manual |
 | `RELEASE_NOTES.md` | Notes for each build |
 | `VERIFICATION.md` | What the tests prove and what they don't |
@@ -16,10 +16,10 @@ The rule: **nothing in a doc that the data already knows is typed by hand.** A n
 ## Inputs
 
 - The merged game. Phase 8's static checks must be green: the item-source graph and the quest `hint` metadata feed the guide.
-- `docs/BALANCE.md`: the economy simulator's level curves, boss levels, gold.
+- `docs/BALANCE.md`: the economy simulator's level curves, boss levels, gold (combat games), or the solver's per-chapter results (non-combat games).
 - `docs/qa/points_of_no_return.md` (missable boxes) and the side-quest reports (quest steps and clues).
 - `docs/REQUIREMENTS.md`: guide language(s), tone, charts on or off, platform and launcher.
-- `forge-tools/shoot.js`, the screenshot harness: no encounters, waits for state, bundled CJK font, labels from map data.
+- `tools/forge/shoot.js`, the screenshot harness: no encounters, waits for state, bundled CJK font, labels from map data.
 - `briefs/guide.md`.
 
 ## Steps
@@ -52,18 +52,13 @@ The rule: **nothing in a doc that the data already knows is typed by hand.** A n
    - **randomness**: exactly what is random and what is fixed, and a mnemonic when the inputs are random;
    - retry rules;
    - what is lost by forfeiting.
-5. **Charts** (A):
-   - level curve for the minimal, normal and thorough players against boss levels;
-   - boss HP;
-   - gold per chapter;
-   - growth per character;
-   - the element chart;
-   - collectible distribution and the ending threshold;
-   - the whole route and a route map per chapter.
+5. **Charts** (A). Make only the charts whose data exists in this game; skip the rest without a placeholder. Candidates:
+   - with combat (`CONFIG.battle`): level curve for the minimal, normal and thorough players against boss levels; boss HP; gold per chapter; growth per character; the element chart;
+   - any genre: collectible distribution and the ending threshold; the whole route and a route map per chapter; puzzle count and solution length per chapter (from `tools/sim/solver.js`, if built).
 
    Every chart has an expandable data table.
 6. **Chapter walkthroughs** (B, C, in parallel). Each chapter has:
-   - an overview table (recommended level from BALANCE, party, maps, collectibles);
+   - an overview table (recommended level from BALANCE if the game has combat, party, maps, collectibles);
    - the numbered main path, with `<!-- map:id -->` at each new area;
    - side quests: how each starts, its steps, its reward, and the **in-game clue** for each step;
    - puzzles and minigames, which link to A's sections;
@@ -74,7 +69,7 @@ The rule: **nothing in a doc that the data already knows is typed by hand.** A n
 7. **`PLAYING.md`** (agent A, at the end). Write it in every shipped language. Contents:
    - per-platform launch, including OS security prompts (Gatekeeper "Open Anyway");
    - a controls table **generated from the input bindings**;
-   - auto-battle styles, taken from the engine's style table;
+   - auto-battle styles, taken from the engine's style table (if the game has combat);
    - language switching;
    - render modes and the low-spec path;
    - where saves live (browsers don't share them);
@@ -113,7 +108,7 @@ Automated, by `build_guide.js --check`:
 - [ ] **0 unobtainable items.** The item counts match the validator's.
 - [ ] **Every quest step has a pointer**, and every collectible is listed with its source and its missable window.
 - [ ] Every minigame instance has scoring, best answers and a randomness statement.
-- [ ] Every chart renders with data. 0 broken links.
+- [ ] Every chart placed renders with data; no chart for data the game lacks. 0 broken links.
 - [ ] Regenerating produces **no diff**, so nothing generated was hand-edited.
 - [ ] The controls in `PLAYING.md` match the bindings.
 - [ ] `VERIFICATION.md` lists every suite in `tools/test/`.
@@ -137,4 +132,5 @@ Human gate: none. The guide ships in the zip.
 
 - Wall clock: about **1.5 h**, overlapping phases 8–9. Shorelight took 1 h 50 min with 3 agents, without full map coverage.
 - Map shots: about 3–5 s per map in 2D, through 1 browser slot. 175 maps is about 15 min.
-- Cost: 3 local agents for about 1.5 h; no cloud sessions.
+- Local: 3 agents × ~1.5 h ≈ **4.5 agent-hours** (`tools/forge/cost_estimate.md` row 10).
+- Cloud: $0.

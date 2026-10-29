@@ -8,7 +8,7 @@ Every displayed string exists in every language, uses the glossary's terms, and 
 
 - `docs/REQUIREMENTS.md`: original language, target languages, puzzle-translation policy.
 - The i18n module from phase 2: **shared scope** (UI, data) + **per-chapter scope** that only fills gaps, never overrides shared.
-- `docs/i18n/GLOSSARY.md` v0 (phase 1); `docs/story/*.md` with `[lang-dependent]` puzzle flags.
+- `docs/i18n/GLOSSARY.md` v0 (phase 1); `docs/story/*.md` with `[PUZZLE-LANG]` puzzle tags.
 - Merged chapters with i18n stubs (phase 4). Translation of a chapter starts when it merges, not when all have.
 
 ## Steps
@@ -17,7 +17,7 @@ Every displayed string exists in every language, uses the glossary's terms, and 
    - Dictionaries: `<lang>_ui`, `<lang>_data` (shared), `<lang>_chN[a-z]` (per chapter, loader accepts a letter suffix).
    - Lookup order: current chapter fills gaps; shared always wins on its own keys.
    - Source text: whole static literals; interpolation only through `%s`/`%d` templates with whole-phrase static parts.
-   - Extractor `tools/i18n/extract.js`: buckets keys into ui / data / chN, reports coverage, `--missing`, `--stub chN`; **marks puzzle and glyph keys** (from screenplay flags and a glyph heuristic); excludes painted art text by declared pattern.
+   - Extractor `tools/i18n/extract.js`: buckets keys into ui / data / chN, reports coverage, `--missing`, `--stub chN`; **marks puzzle and glyph keys** (from `[PUZZLE-LANG]` screenplay tags, `// i18n:puzzle` comments beside the key in code, and a glyph heuristic); excludes painted art text by declared pattern.
 2. **Glossary complete** (1 local agent or the lead, before chapter fan-out). `docs/i18n/GLOSSARY.md`:
    - how the dictionaries work (exact-key match, templates, load order, markup that must survive);
    - style: spelling variant, quote and ellipsis conversion, no italics if the renderer can't draw them, gloss a cultural term once then use the plain word;
@@ -25,7 +25,7 @@ Every displayed string exists in every language, uses the glossary's terms, and 
    - **term table**: every cast name, place, item, skill, stat, element, currency, the signature mechanic; one rendering each.
    Translators may add terms; renaming one goes through the lead.
 3. **Shared first** (1 local agent, `briefs/translator.md`). `<lang>_ui` and `<lang>_data`. Every chapter translator depends on these terms.
-4. **Cut units** (lead). One unit = one chapter dictionary; **split at ≤ 1,200 source lines** into `chN` / `chNb`; pair small chapters into one unit. Register each unit in `.forge/agents.json`.
+4. **Cut units** (lead). One unit = one chapter dictionary; **split at ≤ 1,200 source lines** into `chN` / `chNb`; pair small chapters into one unit. Register each unit with `tools/forge/agents.sh add`.
 5. **Translator fan-out** (~6 local agents, `briefs/translator.md`). CPU-light, so they **backfill** idle capacity alongside builders. Each:
    - own worktree, branch `i18n/<lang>-chN`, exclusive files: its dictionary files only;
    - reads the screenplay for context, the glossary, the bible's voice notes;
@@ -36,10 +36,10 @@ Every displayed string exists in every language, uses the glossary's terms, and 
    - *re-author*: new wordplay in the target language (Shorelight: new English rhyming couplets for the 山歌 duel).
    If the game logic checks the answer, the lead adds a per-language answer to the data; the translator never edits logic. Record each decision in `docs/i18n/puzzles.md`; the guide (phase 10) documents both languages.
 7. **Late-string rule** (every brief, all phases). An agent that adds or changes display text adds every translation in the same commit. A source-language fix (proofread, phase 8, `briefs/proofread.md`) also updates the translation and any test that quotes it.
-8. **Layout check** (1 local agent, browser via `governor.sh`). `tools/i18n/layout.js`:
+8. **Layout check** (1 local agent, browser via `tools/forge/governor.sh --`). `tools/i18n/layout.js`:
    - measures every string with the real bundled font against its box (dialogue, menu columns, battle target, turn bar, title, item descriptions), **for every language including the original**;
    - fixes overflow **in the UI code** (wrap, shrink-to-fit, wider column), never by truncating strings;
-   - screenshots every screen in every language through `forge-tools/shoot.js` and views them;
+   - screenshots every screen in every language through `tools/forge/shoot.js` and views them;
    - report to `docs/qa/layout_<lang>.md` (fixed, remaining, method).
 9. **Glyph coverage.** Font subsetting runs at package time (phase 11); here, assert that the font source covers every character used by every language.
 
@@ -53,8 +53,7 @@ Every displayed string exists in every language, uses the glossary's terms, and 
 ## Exit gate
 
 Automated:
-- [ ] Coverage **≥ 99.9%** per target language (`extract.js --missing`); the remainder listed and justified.
-- [ ] Validator i18n rule: 0 source keys without a translation in any target language.
+- [ ] **0 missing keys** in every target language (`extract.js --missing` and the validator i18n rule). The coverage % is reported for information only.
 - [ ] Layout check: **0 overflows** in every language, including the original.
 - [ ] Glossary lint: every glossary term renders the same way everywhere.
 - [ ] No dictionary unit over 1,200 source lines; no chapter key overrides a shared key.
@@ -77,4 +76,5 @@ No human gate.
 ## Time/cost estimate
 
 - ~30 min wall clock for translation (6 agents in parallel, staggered as chapters merge) + ~30 min layout check per target language.
-- Cost: ~6 local agents, CPU-light; 1 browser slot for the layout check. No cloud sessions.
+- Local: ~6 agents × ~0.5 h ≈ 3 agent-hours (`tools/forge/cost_estimate.md` row 6), CPU-light; 1 browser slot for the layout check.
+- Cloud: $0.
