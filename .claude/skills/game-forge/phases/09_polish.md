@@ -12,7 +12,7 @@ This phase runs **alongside phase 8**. The agent cannot hear audio and cannot ju
 
 ## Inputs
 
-- Frozen screenplays and `docs/story/cues.json`. The lead picks 5–8 **key scenes** from the bible's beat sheet (first meeting, first loss, a revelation, a sacrifice, every ending) and lists them at the top of `docs/qa/scenes.md`.
+- Frozen screenplays and `docs/story/cues.json`. The 5–8 **key scenes** tagged in phase 1 (`docs/story/KEY_SCENES.md`: first meeting, first loss, a revelation, a sacrifice, every ending). If a scene is missing, the lead adds it there.
 - `docs/REQUIREMENTS.md`: music style, signature motif, whether G3 is wanted, quality-bar reference.
 - Design picks and their sheets (`docs/design/PICKS.md`), the reference notes (`docs/design/REFERENCES.md`), `docs/canon/appearance_facts.json`.
 - `docs/qa/sweep3d.md` from phase 8 (draw calls and triangles per map).
