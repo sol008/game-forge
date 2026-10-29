@@ -1,6 +1,6 @@
 # Engine architecture
 
-The layer map for a fresh engine. It is distilled from Shorelight (vanilla-JS HTML5 RPG, optional Three.js layer, ~150k lines, runs from `file://`) and keeps what worked, minus the coupling the survey found (`research/repo_survey.md` §4).
+The layer map for a fresh engine. It is distilled from Shorelight (vanilla-JS HTML5 RPG, optional Three.js layer, ~150k lines, runs from `file://`) and keeps what worked, minus the coupling the survey found (`research/repo_survey.md` in the source repo `sol008/game-forge` §4).
 
 Tags used below:
 - **[G]** genre-neutral: every game has it.

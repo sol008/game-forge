@@ -1,0 +1,17 @@
+{
+  "name": "sol008-tools",
+  "owner": {
+    "name": "sol008"
+  },
+  "plugins": [
+    {
+      "name": "game-forge",
+      "source": "./plugins/game-forge",
+      "description": "Game-building skill, engine blueprint and orchestration tools",
+      "author": {
+        "name": "sol008"
+      }
+    }
+  ],
+  "description": "sol008 tools: game-forge (build complete games end to end)"
+}

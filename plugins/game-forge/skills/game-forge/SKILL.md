@@ -7,7 +7,15 @@ description: Build a complete, shippable video game end to end (story, engine, l
 
 This skill builds a game the way 《彼岸燈》 Shorelight was built (12 chapters, 175 maps, 3D, zh+en, ~150k lines; ~13 h to v1.0, about 2 days including the playtest loop), minus the ~45 interventions that could have been avoided. The playbook is distilled from that build.
 
-Expected wall clock to the first playable zip: full size ~13–16 h; mini (2 chapters) ~4–8 h (`docs/PLAN.md` §5, §11). The full rationale is in `docs/PLAN.md`, and the evidence is in `research/`.
+Expected wall clock to the first playable zip: full size ~13–16 h; mini (2 chapters) ~4–8 h (`docs/PLAN.md` §5, §11). The full rationale (`docs/PLAN.md`) and evidence (`research/`) live in the source repo `sol008/game-forge`, not in this folder.
+
+## Where this skill lives
+- **`$FORGE` is this skill's own folder**, the one holding this SKILL.md, wherever it was loaded from:
+  - a claude.ai account skill (synced into every session);
+  - a plugin cache;
+  - a repo checkout.
+- Every path in this skill (`phases/`, `rules/`, `blueprint/`, `forge-tools/` …) is relative to it.
+- Treat it as **read-only**. Changes go to the source repo `sol008/game-forge`, under `plugins/game-forge/skills/game-forge/` (phase 12, step 7).
 
 ## Non-negotiables
 
@@ -78,8 +86,8 @@ Record the decision and the reason in `docs/REQUIREMENTS.md`.
 - `rules/`: testing, discoverability, orchestration, budget, communication.
 - `lessons.md`: the Shorelight incident list.
 - `status_table.md`: check-in format.
-- `../../../blueprint/`: engine and QA-tool design.
-- `../../../forge-tools/`: governor, agents, status, watchdog, merge gate, `release_gate.js`, screenshots, cost estimate. Phase 0 copies it into the game repo as `tools/forge/`; every phase and brief calls `tools/forge/<tool>`.
+- `blueprint/`: engine and QA-tool design.
+- `forge-tools/`: governor, agents, status, watchdog, merge gate, `release_gate.js`, screenshots, cost estimate. Phase 0 copies it into the game repo as `tools/forge/`; every phase and brief calls `tools/forge/<tool>`.
 
 ## Self-improvement
 

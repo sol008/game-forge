@@ -77,7 +77,7 @@ If the user already gave a brief, pre-fill from it. Ask only what is missing or 
 
 1. Write `docs/REQUIREMENTS.md` from `requirements_template.md`, marking every value as **user** or **default**.
 2. Rate the similarity to Shorelight and record the engine policy (see SKILL.md).
-3. **G0b cost estimate** (`forge-tools/cost_estimate.md` in the game-forge checkout; phase 0 copies it to `tools/forge/`): a table by phase. Quote **cloud $** and **local agent-hours** separately; `L` ($ per local agent-hour) is not measured until 30 min into phase 1, so show local cost as a range until then. Then one question: "Set a spending cap on cloud $ + local agent-hours × L? (No cap / $X / $Y / custom)". The default is no cap, but spend appears in every status table, and the cap is re-checked once `L` is measured.
+3. **G0b cost estimate** (`$FORGE/forge-tools/cost_estimate.md`; phase 0 copies it to `tools/forge/`): a table by phase. Quote **cloud $** and **local agent-hours** separately; `L` ($ per local agent-hour) is not measured until 30 min into phase 1, so show local cost as a range until then. Then one question: "Set a spending cap on cloud $ + local agent-hours × L? (No cap / $X / $Y / custom)". The default is no cap, but spend appears in every status table, and the cap is re-checked once `L` is measured.
 4. Show a one-screen summary, then start phase 0. **Do not ask "shall I begin?"**: the intake answers are the go.
 
 ## Defaults when the user skips a question

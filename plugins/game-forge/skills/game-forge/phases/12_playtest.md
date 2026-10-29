@@ -81,17 +81,19 @@ The loop repeats until the user says "ship" (G5).
    | shell on a bare tile | a discoverability rule over every `examine` event |
    | festival silence | a cue assertion from `cues.json` |
    | no refill on level-up | a unit test that empties MP, wins, and asserts full |
-7. **Commit the lesson to game-forge** (lead, right after the fix merges). In a clone of `sol008/game-forge` on `main`:
-   - Add a row to `.claude/skills/game-forge/lessons.md`: incident → rule.
+7. **Commit the lesson to game-forge** (lead, right after the fix merges). `$FORGE` may be a read-only synced copy, so always edit a fresh clone of the source repo `sol008/game-forge` (attach it with add_repo if needed), on `main`, under `plugins/game-forge/skills/game-forge/` (`$SRC` below):
+   - Add a row to `lessons.md`: incident → rule.
    - Put the rule itself where it acts: `rules/*.md`, the phase file's pitfalls, or the validator spec in `blueprint/qa_tools.md`.
    - Keep it generic, with the game named only as a labelled example. No secrets.
    - One lesson per commit:
    ```
-   git -C "$FORGE" pull --ff-only
-   $EDITOR lessons.md rules/testing.md      # or the phase / blueprint file
-   git -C "$FORGE" commit -am "lesson: re-entering a map rebuilds per-visit state (<game>)"
-   git -C "$FORGE" push origin main         # straight to main, as decided
+   git clone --depth 1 https://github.com/sol008/game-forge "$SCRATCH/game-forge-src"
+   SRC="$SCRATCH/game-forge-src/plugins/game-forge/skills/game-forge"
+   $EDITOR "$SRC/lessons.md" "$SRC/rules/testing.md"     # or the phase / blueprint file
+   git -C "$SCRATCH/game-forge-src" commit -am "lesson: re-entering a map rebuilds per-visit state (<game>)"
+   git -C "$SCRATCH/game-forge-src" push origin main     # straight to main, as decided
    ```
+   After pushing, tell the user once per batch that **the account-uploaded skill is now behind**. Rebuild the upload zip with `bash "$SCRATCH/game-forge-src/tools/package_skill.sh"` and send it (plugin users update with `/plugin update`).
    If a bug is purely game-specific, write "game-specific: <reason>" in the row instead.
    If the push to `sol008/game-forge` is denied, append the lesson to `docs/forge/lessons_for_forge.md` in the game repo instead, record "forge push denied" in the row, and list those lessons in the final report.
 8. **Ship the batch** (lead). Merge with `tools/forge/merge_gate.sh` (the `FORGE_TEST_CMD` of phase 4 step 6, plus the new regression checks). When the batch is done, or an S1 is fixed, run **phase 11** as the next release candidate. The message maps each user note to its fix ("你說的 X → 已修正，並新增檢查 Y").

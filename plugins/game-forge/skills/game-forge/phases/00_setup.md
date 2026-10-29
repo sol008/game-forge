@@ -8,7 +8,7 @@ Turn the intake answers into a locked, committed `docs/REQUIREMENTS.md`, a priva
 
 - Intake done (`intake.md`). G0 and G0b answered: required fields (languages, render mode, platform), budget/cap answer, private repo `owner/name`.
 - A draft `docs/REQUIREMENTS.md` (from `requirements_template.md`), not yet committed.
-- The game-forge checkout (`$FORGE`) with `forge-tools/`. Step 5 copies it into the game repo; after that, everyone calls `tools/forge/<tool>`.
+- This skill's folder (`$FORGE`, see SKILL.md) with `forge-tools/`. Step 5 copies it into the game repo; after that, everyone calls `tools/forge/<tool>`.
 
 ## Steps
 
@@ -21,7 +21,7 @@ All steps: **lead only**, serial. No agents yet: nothing exists for them to work
    - Copy the `owner/name` from tool output, never retype it.
 2. **Working directory.** Clone to a neutral path, e.g. `~/game`, not a title-based folder. Title and slug live only in `CONFIG` and `REQUIREMENTS.md`, so a rename never moves files.
 3. **Probe the environment** and write `docs/forge/env.md`:
-   - **paths**: `FORGE=<game-forge checkout>` (lead only); `SCRATCH=<scratchpad dir>/<slug>`; `FORGE_DIR` left at the tools' default (the main checkout's `.forge/`, gitignored, runtime only). Every later `$FORGE`/`$SCRATCH` means these values;
+   - **paths**: `FORGE=<this skill's folder>` (lead only); `SCRATCH=<scratchpad dir>/<slug>`; `FORGE_DIR` left at the tools' default (the main checkout's `.forge/`, gitignored, runtime only). Every later `$FORGE`/`$SCRATCH` means these values;
    - `nproc`, `free -g`, disk; GPU present? (none means SwiftShader: no video or performance claims, and 3D tests need a lite mode);
    - `node -v`, Playwright browsers path, `python3 -c 'import fontTools'`;
    - CJK or other script fonts installed? Font source reachable (Google Fonts or a vendored copy)?
@@ -45,7 +45,7 @@ All steps: **lead only**, serial. No agents yet: nothing exists for them to work
    A locked field changes only through a **change order** (step 9).
 5. **Repo skeleton** (commit 1):
    - `.gitignore`: `*.log`, `dist/`, `node_modules/`, `tools/**/out/`, `*.tmp.*`, generated font data if it is rebuilt at package time;
-   - **forge tools**: `cp -R "$FORGE/forge-tools/." tools/forge/`; write the game-forge sha (`git -C "$FORGE" rev-parse --short HEAD`) into `docs/forge/env.md`. Cloud child sessions check out only the game repo, so this copy is how they get the tools. Re-copy only as a deliberate commit ("forge tools → <sha>");
+   - **forge tools**: `cp -R "$FORGE/forge-tools/." tools/forge/`; write the forge version into `docs/forge/env.md`: the `version` from `plugin.json` if present, else `sha256sum "$FORGE/SKILL.md" | cut -c1-12`. Cloud child sessions check out only the game repo, so this copy is how they get the tools. Re-copy only as a deliberate commit ("forge tools → <sha>");
    - `docs/REQUIREMENTS.md`, `docs/forge/env.md`, `docs/forge/cost.md` (the G0b table);
    - empty `docs/forge/followups.md` (deferred fixes keyed by file owner) and `docs/forge/AGENTS.md` (a snapshot of `tools/forge/agents.sh list`, re-committed at each check-in). The live registry `.forge/agents.json` is runtime state in `$FORGE_DIR` and is never committed;
    - a two-line `README.md` (title, "under construction").

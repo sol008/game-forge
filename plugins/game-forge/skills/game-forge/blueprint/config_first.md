@@ -9,7 +9,7 @@ Shorelight's engine was written for one game, so its vocabulary leaked into ~10 
 
 ## 1. What leaked, and where (evidence)
 
-From `research/repo_survey.md` §1 "Leaks". Line numbers refer to the Shorelight tree.
+From `research/repo_survey.md` in the source repo `sol008/game-forge` §1 "Leaks". Line numbers refer to the Shorelight tree.
 
 | Leak | Evidence | Rule it breaks |
 |---|---|---|
