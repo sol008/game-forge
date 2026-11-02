@@ -66,6 +66,8 @@ Add new lessons at the bottom of the matching section after every game, and comm
 - The agent cannot hear audio → measure (loudness, loop seams), send previews, mark music as a human taste gate.
 - Sacred-ceremony scene: no melody may be imitated → ambience only, as the screenplay says (see T9).
 
+- Shorelight ch5 mirror puzzle: in 3D the map's 2D overlay became a flat floor decal. The mirror cloths and ／＼ facings were hidden under the 3D stands, and the folding screens lay flat on the floor. The puzzle was solvable but unreadable → **puzzle state lives on the model** (a live `state` the 3D layer re-reads), never only in a 2D overlay; screenshot every puzzle in every render mode, in its unsolved, partly-solved and solved states (T17).
+
 ## Release
 - A rebuild shipped a stale font (99 vs 101 subset slices) → package step regenerates derived assets and checks glyph coverage.
 - A cloud team pushed fixes after the "final" build → freeze and drain all agents before building.

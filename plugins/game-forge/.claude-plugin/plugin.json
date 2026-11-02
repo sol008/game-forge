@@ -1,7 +1,7 @@
 {
   "name": "game-forge",
   "description": "Build complete, shippable multi-chapter games end to end from a multiple-choice requirements intake, with parallel agents and minimal handholding.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": {
     "name": "sol008"
   }

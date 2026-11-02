@@ -27,6 +27,7 @@ These rules exist so that can't happen again. Each one names the incident behind
 | T14 | Keep validator warnings at **0**, so a new one stands out. False positives get suppressed by a declared pattern. | Dynamic flag names (`'ch4_pc_'+k`) hid among 15 old warnings |
 | T15 | Visual checks use the **real flow**, never forced state. | A forced victory page hid the stale HUD level after a level-up |
 | T16 | Long suites are split so none exceeds 20 min; background timeouts are ≥2× the expected time. | A ch9–11 suite was killed at the 30-min background limit |
+| T17 | Every puzzle and stateful interactable is **screenshotted in every render mode, in each state** (unsolved, partly solved, solved), and its state is drawn by the model itself, not by a 2D overlay. After the solve, the story chain that follows (scene, flags, objective, next trigger) is played in the default render mode. | Ch5 mirror puzzle: 3D hid the mirror cloths and facings, and the screens lay flat |
 
 ## Before any fan-out
 The engine conformance suite (`blueprint/conformance_suite.md`) is green. Every chapter builder hit the same engine bugs and wrote six different workarounds.
