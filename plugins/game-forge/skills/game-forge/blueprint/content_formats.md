@@ -91,9 +91,10 @@ Vision comes from `S.vision(sec)`, from an item's `use.vision`, or from a map's 
 ```js
 chests:  [{ id: 'c1', x: 5, y: 6, item: 'tonic', n: 2 }, { id: 'c2', x: 9, y: 9, gold: 120, spirit: true, pointer: 'ferryman' }]
 warps:   [{ x: 0, y: 10, h: 3, to: 'harbor_east', tx: 18, ty: 11, tdir: 'left', door: false, if, run }]
-warps:   [{ x: 6, y: 0, to: 'open_sea', tx: 4, ty: 4, oneWay: 'pnr_c3_set_sail' }]   // one-way: needs a pnr (§7)
+warps:   [{ x: 6, y: 0, to: 'open_sea', tx: 4, ty: 4, oneWay: 'pnr_c3_set_sail', sets: { flags: ['c3_sailed'] } }]   // one-way: needs a pnr (§7)
 enemies: [{ id: 'rat1', troop: 't_c3_dock_rats', x: 10, y: 12, art: 'rat', radius: 3, chase: 4, respawn: true, lv: 11 }]
 ```
+- A map-edge exit that ends a quest early (e.g. walking out of an escort) is one-way too: it gets `oneWay` and `sets`.
 - A warp's landing cell must be walkable, must not be a warp cell, and should sit one step inside the map. A warp `run` that returns `false` cancels the warp.
 - Enemies: touching one starts a battle, and Z next to one gives a pre-emptive strike. `respawn:false` writes `dead_<map>_<id>`. An unknown troop id is a validator error, and at runtime it ends the encounter once with `'error'` (no restart loop).
 
@@ -145,7 +146,7 @@ G.Story.define(3, {
                       await S.warp('harbor', 12, 18, 'up'); },
 });
 // last beat of chapter 3:
-if (!(await S.pointOfNoReturn({ id: 'pnr_c3_set_sail' }))) return;
+if (!(await S.pointOfNoReturn({ id: 'pnr_c3_set_sail', sets: { flags: ['c3_sailed'], chapter: 4 } }))) return;
 await G.Story.next(S, 4);
 ```
 `G.Story.next` sets the chapter and runs the next `start`; if there is none, it shows a "to be continued" card. `progression` feeds the canonical `chapterStart(N)` test fixture (level, party, gear, items) and the simulators. Tests may not boost beyond it.
@@ -153,12 +154,14 @@ await G.Story.next(S, 4);
 ## 4. Quests and collectibles
 ```js
 G.Quests.define('q_c3_lost_bell', {
-  name: '…', kind: 'side', collectible: true, closes: 'pnr_c3_set_sail',
-  guide: {                                   // the guidance record (rules/discoverability.md D9–D10)
+  name: '…', kind: 'side', collectible: true, closes: 'pnr_c3_set_sail',   // closes: display only (closes-at)
+  closedIf: s => s.chapter > 3 || s.flags.c3_sailed,                        // the test the pnr check runs (§7)
+  guide: {                                   // the guidance record (rules/discoverability.md D9–D11)
     where: { map: 'harbor', npc: 'ferryman' }, when: 'night',   // 'any' | 'day' | 'night' | a story phase
     rumour: '…',                             // shown once the player has entered the area
     hints: ['riddle…', 'region + NPC…', 'area…', 'exact spot…'],   // 4 tiers, each adds new information
     area: 'harbor_district',                 // per-area tally key
+    venue: 'harbor_teahouse',                // optional; default: the area's hint venue. Reachable while open (D11)
   },                                         // closes-at comes from `closes` above
   steps: [
     { text: '…', hint: { npc: 'ferryman' } },
@@ -172,9 +175,12 @@ G.Quests.define('q_c3_lost_bell', {
 - `S.collect(questId)` lights `ember_c3_lost_bell` (prefix `CONFIG.collectible.id`, see `config_first.md`) with its animation. It is the **last** beat of the resolution. Collectibles never come from a bare `flag`: Shorelight's ch7/ch8 builders set flags that the ending count never saw.
 - Ending thresholds read `G.Collect.count()` against `CONFIG.collectible.threshold`.
 - `docs/canon/collectibles.json` is the **plan list** (name, chapter, quest id), written in phase 1. It plans at least the threshold plus a slack of 25 % of the threshold (minimum 2). The validator derives each id from its quest and checks the list against the code both ways: every planned collectible has a quest with exactly one `S.collect`, and every `S.collect` is planned.
-- Every guidance UI (collectible panel, quest log, rumours, quest-giver marks, area tallies, party talk, load recap, stuck offer, presets) reads `guide`; none keeps its own text. Build the registry and these readers in phase 2, with the sample chapter, never as a late retrofit.
+- Every guidance UI (collectible panel, quest log, rumours, quest-giver marks, area tallies, party talk, hint vendors, load recap, stuck offer, presets) reads `guide`; none keeps its own text. Build the registry and these readers in phase 2, with the sample chapter, never as a late retrofit.
+- Before the start, talk may voice the `rumour`; after it, only the current step's hints, and each new step is a new talk topic (D10).
+- Every collectible gets the same in-world cue (e.g. a floating name tag) from the engine, not per placement (D1).
 - The validator checks that:
   - every quest has a complete `guide` (where, when, rumour, 4 distinct hint tiers, area), and its map, NPC and area exist;
+  - every quest that can be missed has a `closedIf`, and every quest with hints has a venue in its area that is reachable while it is open;
   - every quest step has a `hint`;
   - every `collectible:true` quest has exactly one `S.collect`;
   - every `q_` id used in scripts is defined, and the reverse;
@@ -215,12 +221,14 @@ G.Enemies.boss('t_c3_tide_king', ['c3_tide_king'], 'sea', 'boss');
 
 ## 7. Points of no return
 ```js
-if (!(await S.pointOfNoReturn({ id: 'pnr_c3_set_sail', intro: [['captain', '…']], back: 'D', event: ctx }))) return;
+if (!(await S.pointOfNoReturn({ id: 'pnr_c3_set_sail', sets: { flags: ['c3_sailed'], vars: { tide: 2 }, chapter: 4 },
+                                intro: [['captain', '…']], back: 'D', event: ctx }))) return;
 ```
-- The engine derives what closes from the quest registry (every quest with `closes: 'pnr_c3_set_sail'`), so builders do not repeat the list.
-- **Open** quests are named, each with **where** it is (from `guide.where`). Collectibles whose quest was never started are **counted**, not named. The prompt lists everything the point closes, never a bare "no way back".
+- **`sets` is required** at every call site: the flags it sets, the vars it changes, and `chapter` when a chapter ends. Without it the check sees no change and goes silent, so the validator rejects a call without `sets`.
+- The engine derives what closes by **simulation**, not by a list: apply `sets` to a copy of the state (or temporarily, then restore), and take every entry whose `closedIf` turns from false to true and that is available now. Builders never pass the list. "Everything open in this area" over-warns (things still doable later, or not yet open); "only what the call site names" under-warns. Over-warning trains players to click past the prompt.
+- **Open** quests are named, each with **where** it is (from `guide.where`). Available collectibles whose quest was never started are **counted**, not named. The prompt lists exactly what the point closes, never a bare "no way back".
 - Nothing open: return `true` silently. Otherwise ask, with "continue" as option 0, then "not yet" and "save first" (opens the save menu, then asks again). If the player chooses to wait, re-arm `event` and step the player `back`.
-- Every `oneWay` warp, chapter end, and boss whose win moves the story on must call a pnr. Every pnr is catalogued in `docs/qa/points_of_no_return.md` (id, map, what closes); the validator diffs that catalogue against the code.
+- Every `oneWay` warp (map-edge exits included), chapter end, and boss whose win moves the story on must call a pnr. Every choice that permanently loses a collectible gets a confirmation through the same check. Every pnr is catalogued in `docs/qa/points_of_no_return.md` (id, map, `sets`, what closes); the validator diffs that catalogue against the code.
 
 ## 8. Discoverability metadata (validator rules)
 1. Every quest step has a `hint` (npc, map+at, or journal), and the hinted npc or map exists.
@@ -230,6 +238,9 @@ if (!(await S.pointOfNoReturn({ id: 'pnr_c3_set_sail', intro: [['captain', '…'
 5. BFS reachability over real collision reaches every warp, chest, NPC and quest target from each entry.
 6. Harvestables look different from their decorative twins (a different art id or a `marker:'glint'`).
 7. Every quest and collectible has a complete `guide` record (§4), and every pnr's prompt can name where each quest it closes is.
+8. Every pnr call site and `oneWay` warp declares `sets`; every missable entry has a `closedIf`.
+9. Every entry with hints has a hint venue in its area; one-way areas have their own (D11). The hint currency has a source in chapter 1.
+10. Every collectible has the shared in-world cue (D1).
 
 ## 9. Screenplay → code mapping
 

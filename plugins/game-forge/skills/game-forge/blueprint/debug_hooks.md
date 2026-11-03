@@ -7,6 +7,7 @@ Every automated test and every playtest report goes through this surface, so it 
 - **Jump to a start state, never across the critical path.** URL jumps exist to set up the *beginning* of a chapter, map or fight from the canonical `chapterStart(ch)` fixture (level, party, gear, gold, flags). Within a chapter, tests walk, talk and press keys. Shorelight's ch11 lighthouse soft-lock (stairs on walls) went unseen because a test teleported past it.
 - **Debug only behind `?debug`.** Without it, `G.Debug.init` does nothing and the F2 menu is unbound. The code ships, the surface is inert.
 - **Real input is the default.** `autoplay` is a fast-forward for long scripted stretches. Every flow also has a real key-press test, and the harness asserts autoplay is off in those tests.
+- **A chapter start looks like a real save.** `chapterStart(ch)` also sets every earlier chapter's story flags and chapter number, so earlier content is closed (each entry's `closedIf` true) or done, exactly as after playing there. Otherwise hint menus, recaps and point-of-no-return warnings list stale entries and QA reads of them are noise.
 - **Tests never write flags mid-run.** `flags=` is only for the start state. Side-quest walkthroughs must reach every flag through play.
 - **One terminal-state check.** Any game over, title screen or frozen state ends the test fast with a diagnostic, instead of a 10-minute timeout.
 
@@ -21,7 +22,7 @@ All parameters require `?debug`, except the feature flags in §5.
 | `party=a,b,c` | Party ids (default: `G.Data.progression[ch].party`, never a literal) |
 | `flags=f1,f2` | Flags set before the first frame |
 | `chapter=<n>` | `G.state.chapter` (i18n scope, progression row) |
-| `fixture=chN` | Apply `chapterStart(N)`: level, gear, items, gold, collectibles so far. **Tests use this instead of ad-hoc `lv`/gold** |
+| `fixture=chN` | Apply `chapterStart(N)`: level, gear, items, gold, collectibles so far, earlier chapters' story flags (their content closed as in a real save). **Tests use this instead of ad-hoc `lv`/gold** |
 | `startch=<n>` | Fixture for N, then run `G.Story.chapters[N].run` from its first beat, exactly as the previous chapter's `G.Story.next` would |
 | `battle=<troop>` | Start that fight on a neutral map; result goes to `window.__battleResult` |
 | `auto=1` | Auto-battle on, at the fastest battle speed |

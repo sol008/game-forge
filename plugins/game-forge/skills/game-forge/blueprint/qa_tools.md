@@ -125,8 +125,9 @@ Checks, by category:
    - a **pointer**: an NPC line, a quest-log stage text, a `hint` getter or a guide note, linked by id;
    - a **hit area ≥2 tiles** (`w*h ≥ 2` or `hintR ≥ 1`).
 
-   Every quest stage has `hint` metadata. Every one-way transition declares `pointOfNoReturn` listing the open quests
-   and collectibles it closes.
+   Every quest stage has `hint` metadata. Every one-way transition (map-edge exits included) calls `pointOfNoReturn`
+   and declares its `sets`; every missable entry has a `closedIf`. Every entry with hints has a hint venue in its
+   area, and every collectible carries the shared in-world cue (`content_formats.md` §8).
 8. **Multi-tile footprints.** Every object with `w>1||h>1` that is interactable must accept interaction from every
    footprint cell. Check it on the real engine by calling `findInteract` from each adjacent cell.
 9. **i18n.** Every source-language string key has an entry in every target locale: the gate is **0 missing keys**
@@ -243,7 +244,8 @@ found and not missed by accident. It is mandatory before the first ship.
 - **Finding.** Before interacting, the script records the pointer it followed: NPC line id, quest-log text or marker.
   A step that needs knowledge with no pointer fails as `UNDISCOVERABLE`.
 - **Missables.** It walks to each point of no return with the quest still open and asserts that the warning names it
-  and where it is, and offers "save first".
+  and where it is, and offers "save first". It also asserts the reverse: an entry still doable after the transition,
+  or not yet open, is **not** named.
 - **No-guide mode** (`--no-guide`). The agent plays from **in-game text only**: dialogue, quest log, rumours, marks,
   party talk and stuck offers; never the guide, code or screenplay. For each unit it records the **lowest hint tier**
   that was enough (0 = none). Tier 4, or no tier, is `UNDISCOVERABLE`.

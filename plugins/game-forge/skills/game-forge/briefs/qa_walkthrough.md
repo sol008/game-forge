@@ -22,7 +22,8 @@ report table. Discoverability failures are bugs, exactly like crashes.
 - FIX_MODE `{{FIX_MODE}}`. With fix-content you may edit only clue, hint, marker and pointer content in
   {{FIXABLE_FILES}}, adding target-language entries for each new line. Never touch the engine, the shared harness or
   other ranges.
-- Engine or harness bugs: report them; don't patch them.
+- Any fix is data only, on `{{BRANCH}}`. Engine or harness bugs: report each with file:line, repro and a proposed patch (a
+  diff in the report); don't apply it. The lead fans the patches out by engine area after the merge.
 
 ## How to play (hard rules)
 - Start each script from `{{FIXTURE}}` at the start of its unit. That is the only jump allowed.
@@ -39,10 +40,14 @@ report table. Discoverability failures are bugs, exactly like crashes.
    Play it first with **in-game text only** (dialogue, quest log, rumours, marks, party talk, stuck offers; never the
    guide, code or screenplay) and record the lowest hint tier that was enough. Tier 4 or none = FAIL.
 2. **Completable:** starts, every stage advances, it completes, rewards arrive, the collectible counts, the log closes.
-3. **Missable:** every one-way transition after its start lists it (and where it is) in the point-of-no-return
-   warning, which offers "save first", or it stays reachable afterwards. Permanently missable with no warning = FAIL (missable).
-4. **Reachable:** BFS from every map entry to every exit, stair, chest and quest target in the range.
-5. No page or console error, and `{{LAST_ERROR}}` stays null.
+3. **Missable:** every one-way transition after its start (map-edge exits included) lists it (and where it is) in the
+   point-of-no-return warning, which offers "save first", or it stays reachable afterwards. Permanently missable with
+   no warning = FAIL (missable). A warning that names it while it is still doable later, or before it is open, = FAIL
+   (over-warn).
+4. **Guidance reads right:** once started, party talk and the hint vendor speak about the current stage, not the
+   discovery rumour; a hint venue is reachable from where the target is open; the item shows the shared in-world cue.
+5. **Reachable:** BFS from every map entry to every exit, stair, chest and quest target in the range.
+6. No page or console error, and `{{LAST_ERROR}}` stays null.
 
 ## Scripts
 `{{SIDEQUEST_DIR}}/{{RANGE}}/<unit>.side.js`. Print one line per check, `PASS <id> ...` or `FAIL <id> <class>
@@ -61,7 +66,8 @@ report table. Discoverability failures are bugs, exactly like crashes.
 Budget {{BUDGET_MIN}} min. At 75 %: finish the open unit, report the rest unplayed. At 100 %: push, report PARTIAL.
 
 ## Re-run scope
-After a fix, re-run only the failing script, then one final run of all your scripts.
+After a fix, re-run only the failing script, then one final run of all your scripts. A failure under load at a
+different step each run: re-run it alone before calling it real.
 
 ## Cloud rules (when run as a cloud session)
 - Push a WIP commit every 10 min and after each script. Status goes in the commit message:
@@ -78,7 +84,7 @@ After a fix, re-run only the failing script, then one final run of all your scri
 STATUS: DONE | PARTIAL | BLOCKED     time: <used>/{{BUDGET_MIN}} min     Branch: {{BRANCH}} @ <sha>
 | Unit | Quest / collectible | Result | Discoverable | Hint tier needed | Missable warned | Fixed / proposed | Shortcut used |
 Shortcuts used (every one, and why): debug start, simulated buys, render mode, bot battles, ...
-Engine/harness bugs (unpatched): <file:line> | repro | expected | actual
+Engine/harness bugs (unpatched): <file:line> | area (pnr / hints+talk / marks+tags / other) | repro | expected | actual | proposed patch
 Design calls proposed (with default):
 Ending/collectible totals checked: <n> found vs <n> expected
 ```

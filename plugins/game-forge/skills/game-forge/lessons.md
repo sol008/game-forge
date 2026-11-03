@@ -23,6 +23,8 @@ Add new lessons at the bottom of the matching section after every game, and comm
 - Results misread from a truncated `tail` → T12.
 - A forced victory page hid a stale HUD level → T15.
 - A suite was killed at the 30-min background limit → T16.
+- Debug chapter starts left earlier chapters' quests open, so no-guide QA read noisy hint menus, recaps and warnings → `chapterStart` closes earlier content like a real save (T2).
+- Under load, chapter tests failed at a different step each run and passed alone → re-run alone, then run on a worktree of the last good commit before calling it a regression (T10).
 
 ## Content and discoverability (see rules/discoverability.md)
 - Scallop shell on a bare tile with a hidden precondition; the player never found it → D1, D2, D8.
@@ -36,6 +38,10 @@ Add new lessons at the bottom of the matching section after every game, and comm
 - 芋圓 was both a cat and a dessert → unique-name lint.
 - The camera was held by a cutscene and never released → engine invariant: script end restores camera, input and HUD.
 - Guidance was added quest by quest after the build (log notes here, a hint line there) and the retrofit cost a whole day → **guidance is a system planned from day 0**: one record per quest (where, when, closes-at, rumour, 4 graded hints, area) that every guidance UI reads, a validator rule, points of no return that name what they close and where and offer save-first, and a no-guide QA pass that records the lowest hint tier needed (D6, D9, D10).
+- Point-of-no-return warnings first named everything open in the area (over-warned: things still doable later or not yet open) and then only what the call site passed (under-warned: content lost silently) → each call site declares `sets`, the check applies them to a copy of the state and names entries whose `closedIf` turns true and that are available now; audit every call site, map-edge exits included (D6).
+- Party talk kept re-voicing a quest's discovery rumour after the start → talk and vendors follow the current stage; each stage is a new topic (D10).
+- A one-way area had no hint vendor, a vendor showed only its top 3, and the hint currency came late → a venue per area (validator), urgency ranking with at least about 6 shown, currency from chapter 1 (D11).
+- A missable item had no floating name tag, so only the guide revealed it → one shared in-world cue on every collectible (D1).
 
 ## Systems and balance
 - Bosses trivial until a late pass, then over-softened to make tests pass → simulator with the player bot, target band 86–94%, never tune to pass a test.
@@ -65,6 +71,7 @@ Add new lessons at the bottom of the matching section after every game, and comm
 - An agent claimed an API that didn't exist (`G.Tiles.warm`) → verify by file:line.
 - Two parallel branches both created `sidequests/lib.js` → exclusive new-file namespaces.
 - A full every-map screenshot sweep on a loaded 4-CPU machine ran for hours after the root fix had landed in the first hour → time-box verification, cap browser slots per agent, report the fix as soon as it is made, then verify only the affected maps. Darkness-heuristic flags need a visual look: small rooms in a black frame and title cards read as "dark".
+- The no-guide QA wave ran one cloud session per chapter range: each found 0 unfindable items but about 5 engine issues, and its data fixes stayed in its own chapters' files → agents fix data on their own branch and report engine issues with file:line and a patch; the lead merges, fans out fix agents by engine area (PONR, hint venues and talk, marks and tags), then re-runs **all** side-quest tests, since PONR changes ripple (phase 8 steps 3, 10b).
 
 ## Art and audio
 - Design v1 judged "really bad" (shared face template) → pilot sheet vs quality bar first, culturally grounded options, no shared templates.

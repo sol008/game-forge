@@ -59,7 +59,7 @@ These rules exist because of Shorelight:
 Every brief comes from `briefs/` and has:
 - goal; owned files; definition of done; time budget and stop rule;
 - re-run scope (only failures);
-- "report engine or shared bugs, don't patch them";
+- "report engine or shared bugs with file:line and a proposed patch; don't apply it" (the lead batches patches by engine area);
 - "only claim APIs you can show by file:line".
 
 The lead greps for every API an agent reports before relying on it. One Shorelight agent invented `G.Tiles.warm`.

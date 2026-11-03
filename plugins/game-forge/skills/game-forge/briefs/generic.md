@@ -27,9 +27,11 @@ changed music cue is changed in the screenplay's `<!-- cue: -->` line and `docs/
 ≤ −1 dBFS, integrated −20 ±3 LUFS-ish as `tools/render_music.js` measures it. Every rewritten line gets new
 translations.
 
-**pnr-audit.** For every one-way transition in {{SCOPE}}: it calls the point-of-no-return API, it is catalogued in
-`docs/qa/points_of_no_return.md`, and walking to it with each open quest and unfound collectible shows a warning that
-names the quest and counts the collectibles. Fix the catalogue; report missing calls in game code to the lead, or fix
+**pnr-audit.** For every one-way transition in {{SCOPE}} (map-edge exits and collectible-losing choices included): it
+calls the point-of-no-return API, it declares `sets` (flags, vars, next chapter; none = a silent check), it is
+catalogued in `docs/qa/points_of_no_return.md`, and walking to it with each open quest and unfound collectible shows a
+warning that names the quest and counts the collectibles. Also check the reverse: nothing still doable later, or not
+yet open, is named; over-warning trains players to click past. Fix the catalogue; report missing calls in game code to the lead, or fix
 them if {{OWNED_PATHS}} includes that file.
 
 **chain.** Run `{{CHAIN_CMD}}` from New Game, default difficulty, **default render mode**, encounters on, no assists.
