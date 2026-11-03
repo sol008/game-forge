@@ -54,6 +54,10 @@ Re-render and re-test only failed or changed assets, then one final smoke run.
 - Test renders, logs and turntables go to `$SCRATCH/{{AGENT_ID}}/` (set in `docs/forge/env.md`). Only curated lineups
   go in `{{LINEUP_DIR}}`.
 - No GPU means no video or performance claims; report draw calls and triangle counts only.
+- Shader math stays defined (`blueprint/architecture.md` §2.5): `pow(max(x, 0.0), k)`, `smoothstep` with edge0 < edge1,
+  no divide by a value that can reach 0. One NaN pixel blacks out the screen through bloom, and headless GL won't show it.
+- Characters: poses (lie on back or side, sit, kneel, slump) match the 2D sprite; look-at resets bones to the animated
+  pose each frame, then adds a clamped offset, and is off while lying.
 - Only report APIs you can show by file:line, including what you export.
 
 ## Report format (`{{REPORT_PATH}}`)

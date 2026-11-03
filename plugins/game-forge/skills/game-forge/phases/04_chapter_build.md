@@ -36,7 +36,8 @@ Hard preconditions (checked by the lead before the first launch):
    - [ ] the test includes a **real key-press** path (dialogue and one interaction with autoplay off), waits for script idle before input, never teleports across the critical path, asserts the hand-off to the next chapter and ends there;
    - [ ] the `<!-- cue: -->` assertions for this chapter (`docs/story/cues.json`, checked by `tools/test/spec_conformance.js`) pass;
    - [ ] every side quest exercised; every collectible awarded through the engine API with its derived id (`<collectibleId>_<quest suffix>`, e.g. `q_c3_bell` → `ember_c3_bell`), never hand-typed; the validator checks it against `docs/canon/collectibles.json`;
-   - [ ] every quest step has `hint` metadata; every interactable has a marker and a hit area of ≥ 2 tiles;
+   - [ ] every quest step has `hint` metadata, and every quest and collectible a complete `guide` record from the screenplay; every interactable has a marker and a hit area of ≥ 2 tiles;
+   - [ ] every `[pose: …]` stage direction is an `S.pose` call, screenshotted in the default render mode;
    - [ ] every one-way transition uses the point-of-no-return API;
    - [ ] every map screenshotted (via `shoot.js` through the governor) and viewed;
    - [ ] i18n stubs regenerated for the chapter: an entry in every target language (none when `langs` = [source]); display text is whole static literals;

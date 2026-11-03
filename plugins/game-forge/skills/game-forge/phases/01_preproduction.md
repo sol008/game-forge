@@ -33,21 +33,22 @@ Write the canon (story bible, systems design, canon fact files, glossary) and on
    - combat model, elements chart, stat names, currency (all go into `CONFIG` in phase 2);
    - **progression table**: per chapter the expected level, gold, gear tier, party and kit at entry and at each boss. This becomes `G.Data.progression` and the `chapterStart(ch)` fixture (phase 7 owns tuning);
    - XP/gold curve, shop tiers, collectible thresholds, difficulty band (default boss first-try 86–94%);
-   - QoL defaults from `REQUIREMENTS.md` (level-up refill, auto-battle that clears normal content, point-of-no-return warnings, harvest markers…).
+   - QoL defaults from `REQUIREMENTS.md` (level-up refill, auto-battle that clears normal content, point-of-no-return warnings, harvest markers, the default guidance preset: explore / standard / guided…).
 5. **Writers' guide** (lead). `docs/WRITERS_GUIDE.md`, the screenplay format every chapter file follows:
    - **header table**: chapter, maps, flags, estimated play time;
    - **maps**: id (unique snake_case place name, e.g. `tamsui_fort`), name, purpose, size in tiles, ASCII layout, light, particles, exits;
    - **scene cues**: one `<!-- cue: <scene-id> bgm=<id>|none ambience=<id>|none sfx=<ids> -->` per scene; `none` is an explicit silence;
    - **NPCs**: id, sprite, position, all dialogue and its flag variants;
    - **cutscenes** as numbered beats `speaker(expression): line`, stage directions in brackets, choices, `flag: chN_*`, items, joins, battles;
-   - **side quests**: every step has a **hint** (NPC line, quest-log text, or visible marker), rewards, missable window;
+   - **side quests**: every step has a **hint** (NPC line, quest-log text, or visible marker), rewards, missable window; every quest and collectible also has its **guidance record** (`rules/discoverability.md` D9): where (map + NPC), when (day/night/phase), closes-at, a rumour line, 4 graded hints (riddle → region + NPC → area → exact), area key;
+   - **poses**: a stage direction where someone lies (on back or side), sits, kneels or slumps names the pose and the furniture (`[pose: lie_back on bed]`), so the 3D figure can match the 2D sprite;
    - shops, chests, **puzzles with exact mechanics**; mark language-dependent ones `[PUZZLE-LANG]` (glyphs, rhymes, wordplay);
    - **sound notes** per scene, including "must not" rules (e.g. "never synthesize the ritual chant");
    - style: voices, line length limit (Shorelight: ≤ 60 chars), dialect policy, id conventions (flags `chN_*`, chapter-local data `cN_*`, quests `q_*`).
 6. **Glossary v0** (lead). `docs/i18n/GLOSSARY.md`: cast, places, stat names, currency, elements, the signature mechanic, in every language. Translators extend it later; they never rename.
 6b. **Screenplay + lore lint** (lead, **before** writer fan-out: writers' definition of done runs it). `tools/lint/screenplay.js` (spec in `blueprint/qa_tools.md`):
    - every scene names a map and has one `<!-- cue: <scene-id> bgm=<id>|none ambience=<id>|none sfx=<ids> -->` line, plus its encounters and rewards;
-   - every side-quest step has a hint; every flag is `snake_case` and `chN_`-prefixed; map ids are unique snake_case place names;
+   - every side-quest step has a hint, and every quest a complete guidance record; every "lies/collapses/asleep/kneels/sits" stage direction carries a `[pose: …]` tag; every flag is `snake_case` and `chN_`-prefixed; map ids are unique snake_case place names;
    - every speaker is in `cast.json` and allowed by `speakers.json`;
    - **lore lint**: descriptors near a character's name (hair, eye, age words) agree with `appearance_facts.json`; time phrases agree with `timeline.json`;
    - collectibles match the plan list in `collectibles.json`; names unique per `names.json`;
@@ -98,6 +99,7 @@ Human: **G1** only, and only if the requirements had no premise.
 - **Collectibles awarded via flags only** did not count toward the ending; the finale checked the wrong ids for 4 stories. Hence the `collectibles.json` plan list, derived ids, and a validator check both ways.
 - **Festival night shipped silent**: the screenplay required ambience, and a test asserted "no BGM". Hence `<!-- cue: -->` lines → `cues.json` → `spec_conformance.js` assertions.
 - **~25 quests with no in-game pointer**, found only by post-ship QA. Hints are written into the screenplay, per step.
+- **Guidance retrofitted per quest.** Adding where/when/closes-at, rumours and graded hints after the build cost a whole day. Write the guidance record with each quest here.
 - **Glyph puzzles** (the 洛 lantern, mine-lamp marks, 山歌 rhymes) could not be translated. Flag them `[PUZZLE-LANG]` at writing time.
 - **~20 min of title Q&A** spread over several messages. G1 is one message.
 

@@ -36,9 +36,11 @@ report table. Discoverability failures are bugs, exactly like crashes.
 ## Check per quest or collectible
 1. **Discoverable:** a pointer to its start (NPC line, quest-log entry, visible marker), and a clue for every step.
    A bare tile with no marker, an exact single-tile hit area or a hidden precondition = FAIL (discoverability).
+   Play it first with **in-game text only** (dialogue, quest log, rumours, marks, party talk, stuck offers; never the
+   guide, code or screenplay) and record the lowest hint tier that was enough. Tier 4 or none = FAIL.
 2. **Completable:** starts, every stage advances, it completes, rewards arrive, the collectible counts, the log closes.
-3. **Missable:** every one-way transition after its start lists it in the point-of-no-return warning, or it stays
-   reachable afterwards. Permanently missable with no warning = FAIL (missable).
+3. **Missable:** every one-way transition after its start lists it (and where it is) in the point-of-no-return
+   warning, which offers "save first", or it stays reachable afterwards. Permanently missable with no warning = FAIL (missable).
 4. **Reachable:** BFS from every map entry to every exit, stair, chest and quest target in the range.
 5. No page or console error, and `{{LAST_ERROR}}` stays null.
 
@@ -74,7 +76,7 @@ After a fix, re-run only the failing script, then one final run of all your scri
 ## Report format (`{{QA_REPORT}}`)
 ```
 STATUS: DONE | PARTIAL | BLOCKED     time: <used>/{{BUDGET_MIN}} min     Branch: {{BRANCH}} @ <sha>
-| Unit | Quest / collectible | Result | Discoverable | Missable warned | Fixed / proposed | Shortcut used |
+| Unit | Quest / collectible | Result | Discoverable | Hint tier needed | Missable warned | Fixed / proposed | Shortcut used |
 Shortcuts used (every one, and why): debug start, simulated buys, render mode, bot battles, ...
 Engine/harness bugs (unpatched): <file:line> | repro | expected | actual
 Design calls proposed (with default):

@@ -242,7 +242,11 @@ found and not missed by accident. It is mandatory before the first ship.
   `findInteract`, which is exactly what a player hits.
 - **Finding.** Before interacting, the script records the pointer it followed: NPC line id, quest-log text or marker.
   A step that needs knowledge with no pointer fails as `UNDISCOVERABLE`.
-- **Missables.** It walks to each point of no return with the quest still open and asserts that the warning names it.
+- **Missables.** It walks to each point of no return with the quest still open and asserts that the warning names it
+  and where it is, and offers "save first".
+- **No-guide mode** (`--no-guide`). The agent plays from **in-game text only**: dialogue, quest log, rumours, marks,
+  party talk and stuck offers; never the guide, code or screenplay. For each unit it records the **lowest hint tier**
+  that was enough (0 = none). Tier 4, or no tier, is `UNDISCOVERABLE`.
 - No level raise before bosses. It uses the fixture and the shared bot (§7).
 **CLI.** `node tools/test/sidequests/ch3.side.js [quest-filter] [--shots] [--render lite]`.
 **Output.** One line per quest, `PASS q_x 4/4 steps 38s` or `FAIL q_x step 3: <reason>`, plus a report table in
@@ -267,6 +271,8 @@ is the integration and balance acceptance gate.
 - **Boundary record** at each chapter start and boss: level per member, gold, item counts, gear, collectibles,
   against the economy model's normal-player row. A level more than ±1 off at a boss, or gear affordability below
   90 %, is a FAIL.
+- **Transition frames.** At every chapter boundary it samples frames from the fade-out to the next map and asserts
+  the chapter card was visible (non-black text pixels). A black screen where a card belongs is a FAIL (C21).
 - **No combat** (`CONFIG.battle` absent): the chain still applies; it replays every puzzle and the critical path.
 - **Save/reload mid-run.** At `--reload-at chN` it saves through the real save menu, opens a fresh page, loads
   through the title menu, and continues. Each ending branch replays from a save made before the finale.
@@ -352,10 +358,16 @@ hard-coded query string with cast names. Lite mode (`?r3lite`: half resolution, 
 budget (Shorelight median 79; the worst map at ~490 was a finding); triangles; console errors and `warnOnce` keys = 0;
 **billboard fallbacks** (object or actor with no 3D model) = 0, except an explicit allowlist in `docs/qa/sweep3d.md`;
 placement outliers (props in walls or floating). Batching is on; `--ab` compares against `?nobatch`.
+**Darkness flags are triage, not failures.** A "too dark" heuristic also flags small rooms inside a large black
+frame and title cards; a human or agent looks at each flagged shot before it becomes a bug. A large **pure-black
+rectangle** in a lit scene is different: it is the HDR NaN/Inf blackout (`architecture.md` §2.5), which SwiftShader
+won't reproduce, so the sweep also loads one test map with an injected Inf emitter and asserts no black block.
 **CLI.** `node tools/r3d/sweep.js --out DIR [--resume] [--shard i/n] [--only map,map] [--ab]`.
 **Output.** `DIR/<map>.json`, a JPEG of the 3D layer, a contact sheet, and `docs/qa/sweep3d.md`.
 **Budget.** ≤60 s per map. Shard across cloud sessions (175 maps took ~2 h on one CPU). Re-run only failures, plus 10
-spot checks. Never a full second pass.
+spot checks. Never a full second pass. **To verify a fix**, sweep only the maps the fix touches (`--only`), never
+every map: a full every-map screenshot sweep on a loaded 4-CPU machine ran for hours after the root fix had landed
+in the first hour.
 **Caught.** Every 3D-only bug that 2D tests missed: decals, spirit lights, the double HUD, the canopy fade, ending
 maps crashing headless Chrome.
 

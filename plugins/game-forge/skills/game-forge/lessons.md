@@ -35,6 +35,7 @@ Add new lessons at the bottom of the matching section after every game, and comm
 - A cat (silent by design) had a line → speaker whitelist lint.
 - 芋圓 was both a cat and a dessert → unique-name lint.
 - The camera was held by a cutscene and never released → engine invariant: script end restores camera, input and HUD.
+- Guidance was added quest by quest after the build (log notes here, a hint line there) and the retrofit cost a whole day → **guidance is a system planned from day 0**: one record per quest (where, when, closes-at, rumour, 4 graded hints, area) that every guidance UI reads, a validator rule, points of no return that name what they close and where and offer save-first, and a no-guide QA pass that records the lowest hint tier needed (D6, D9, D10).
 
 ## Systems and balance
 - Bosses trivial until a late pass, then over-softened to make tests pass → simulator with the player bot, target band 86–94%, never tune to pass a test.
@@ -42,6 +43,12 @@ Add new lessons at the bottom of the matching section after every game, and comm
 - Auto-battle couldn't beat bosses → the player-facing AI must clear normal content and is the test AI.
 - Economy: story-only path broke at ch8 (2k gold vs 14k gear) → normal-player economy sim from 2 chapters on.
 - An ally falling counted as a boss win (`false != null`) → explicit boolean checks; sims assert "party alive at win".
+
+## Engine and rendering (see blueprint/architecture.md §2.5, §5)
+- A chapter ended on a black screen and its chapter card never showed: the global fade was drawn over every scene → `overFade` scenes, fade drawn beneath the first one; a transition test samples frames at every chapter boundary (C21).
+- Screen-sized pure-black rectangles in 3D: one NaN/Inf pixel (Inf specular in a half-float target, `pow` of a negative base, `smoothstep` with edge0 > edge1) smeared by bloom; SwiftShader never showed it → sanitize pass before bloom, defined shader math, verify with an injected Inf emitter. GTAO drew black boxes around lights → sprites and non-depth-writing transparents stay out of its G-buffer.
+- Heads spun in held poses: look-at added rotation on bones three.js hadn't rewritten because their keyframe value hadn't changed → reset bones every frame before additive rotations; clamp yaw/pitch, ease back, no look-at while lying (C22).
+- A 2D sprite lay in bed while the 3D figure stood in it → explicit `S.pose` that both views draw, cleared on walk; audit every "lies/collapses/asleep/kneels" stage direction.
 
 ## Orchestration (see rules/orchestration.md)
 - ~30 workers on 4 CPUs; tests 2–3× slower → governor from day 0.
@@ -57,6 +64,7 @@ Add new lessons at the bottom of the matching section after every game, and comm
 - After context compaction, agent ids had to be recovered by grepping transcripts → agent registry.
 - An agent claimed an API that didn't exist (`G.Tiles.warm`) → verify by file:line.
 - Two parallel branches both created `sidequests/lib.js` → exclusive new-file namespaces.
+- A full every-map screenshot sweep on a loaded 4-CPU machine ran for hours after the root fix had landed in the first hour → time-box verification, cap browser slots per agent, report the fix as soon as it is made, then verify only the affected maps. Darkness-heuristic flags need a visual look: small rooms in a black frame and title cards read as "dark".
 
 ## Art and audio
 - Design v1 judged "really bad" (shared face template) → pilot sheet vs quality bar first, culturally grounded options, no shared templates.

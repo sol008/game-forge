@@ -21,7 +21,8 @@ Give every registered object, character, creature, environment and battle view a
    - **file ownership table**: lead owns core, materials, registry, map view; each team owns its own files only;
    - **registry ownership** when a domain is split (e.g. monsters A/B): the lead or team A owns the single registry;
    - budgets: triangles per class, draw calls per model after merge; animated parts as named children;
-   - the instance interface (create, facing, move blend, play clip, expressions, opacity, lights, dispose) and the clip list the battle view expects;
+   - the instance interface (create, facing, move blend, play clip, expressions, **poses** (lie on back or side, sit, kneel, slump, aligned to furniture), clamped look-at, opacity, lights, dispose) and the clip list the battle view expects;
+   - the rendering rules in `blueprint/architecture.md` §2.5 (sanitize before bloom, defined shader math, AO exclusions, bone reset before additive rotations);
    - coverage: every registered id gets a model; 0 fallbacks, except ids on the explicit allowlist in `docs/qa/sweep3d.md`;
    - report format: `docs/r3d_reports/<team>.md` + `<team>_lineup.png`.
 2. **Team split** (lead). By domain, scaled to the game. Shorelight's 11 for scale: characters, animals/pets, architecture A/B, nature, props A/B, monsters A/B, environment, battle view + VFX. Write `docs/r3d/manifests/<team>.json`: ids to cover, reference images, budget, owned files. ETA = ids remaining × measured minutes per asset.
@@ -32,6 +33,8 @@ Give every registered object, character, creature, environment and battle view a
    - state toggles (open, lit, switch) rebuild or update the model;
    - map-scene hooks exist for teams that need per-frame updates; FX buffers are cleared each frame;
    - characters: rig, clips, facing, expressions; animals use the same interface; a monster changes phase; a battle arena loads and VFX dispose cleanly;
+   - every pose matches its 2D sprite (lying along the bed, head on the pillow) and clears on walk; look-at in a held pose doesn't drift for 10 s (C22);
+   - an **injected Inf emitter** leaves no black rectangle after bloom, and no black boxes ring lights or sprites with AO on (headless GL won't show either unprompted);
    - dispose leaks nothing across map re-entry.
    Fix the core until green. Teams receive a core they don't need to shim.
 4. **Launch the first cloud session alone** (`briefs/cloud_session.md` + `briefs/team3d.md`). Confirm it pushes a first commit to `r3d-<team>` within 10 min. Then launch the rest in one batch.
@@ -81,6 +84,9 @@ Phase: every team merged and told to stop; lite 3D smoke passes on every map; al
 - **The battle team went silent 2 h** on a slow sweep, then pushed late fixes after the "final" build, forcing a rebuild. Deadline, then drain.
 - **No GPU**: SwiftShader took ~40 s per map, a video showed only the title at ~2 fps. Lite mode for tests; no video promises.
 - **Half-done batching code** was swept into a WIP commit and had to ship switched off. Risky core features land behind a flag, on a branch.
+- **Screen-sized black rectangles** on real GPUs: one Inf specular pixel in a half-float target, blurred by bloom. SwiftShader never showed it. A sanitize pass before bloom fixed it; GTAO also drew black boxes around lights until sprites and transparents left its G-buffer.
+- **Heads spun** in held poses: look-at added rotation on bones three.js hadn't rewritten. Reset bones each frame, then add a clamped offset.
+- **A sprite lay in bed while its 3D figure stood in it.** Poses are an explicit script command that both views draw.
 
 ## Time/cost estimate
 

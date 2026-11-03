@@ -229,11 +229,26 @@ Two runners share one fixture set, `tools/test/conformance/fixtures.js`. That fi
 - **Why:** spirit content and solidity drifted between modes and on expiry (mined_02 P4 shared-core fixes; mined_03 P9 3D brightness).
 - **How (N):** toggle vision, diff the `solid` grid and `objActive` set. **(P)** sample spirit-object pixels in 3D.
 
+### C21 Title cards and narration show over a fade
+- **Asserts:**
+  - after `S.fadeOut()`, a following `S.titleCard(…)` and `S.narrate(…)` are visible: their text pixels differ from black;
+  - the fade still covers the map and every scene below the first `overFade` scene;
+  - `G.Story.next` at a chapter end shows the next chapter's card.
+- **Why:** the global fade was drawn over every scene, so a chapter ended on a black screen and its chapter card never showed. Every test passed because none looked at the frame.
+- **How (P):** fixture script `fadeOut(0.2)` → `titleCard('T', 'S')`; sample frames during the card and assert non-black pixels in the card's text box, in 2D and 3D. The chain test (`qa_tools.md` §6) samples the same at every chapter boundary.
+
+### C22 Poses and look-at hold steady
+- **Asserts** (the 3D bullets apply only when the render mode is 3D):
+  - `S.pose(id, 'lie_back', {on: bed})` lays the 3D figure along the bed with the head on the pillow end; the 2D sprite shows the same pose; walking clears it in both.
+  - With look-at on and a held pose for 10 s, the head's world rotation stays within the clamp (e.g. yaw ±60°, pitch ±20°) and doesn't drift frame to frame; look-at is off while lying.
+- **Why:** additive look-at rotations accumulated on bones three.js didn't rewrite in held poses, so heads spun. A sprite lay in bed while the 3D figure stood in it.
+- **How (P):** fixture with a bed and an NPC; set each pose, read the rig's bone transforms and the figure's bounding box against the bed's; hold for 600 frames and assert the head-bone delta stays under 1° per frame.
+
 ---
 
 ## Run order and ownership
 
 1. N tests on every engine commit: about 30 s.
-2. P tests (C05, C06, C08–C13, C15 if battles exist, C16, C20) in 2D and 3D, before every merge that touches the engine: about 5 min on 1 browser slot.
+2. P tests (C05, C06, C08–C13, C15 if battles exist, C16, C20, C21, C22 if 3D) in 2D and 3D, before every merge that touches the engine: about 5 min on 1 browser slot.
 3. The `afterScript` hook (C06) and the terminal-state `idle()` (C11) ship inside the shared test library, so chapter, side-quest and chain tests inherit them.
 4. Only the engine owner edits `tools/test/conformance/`. Content agents file engine bugs in this format: test id (new or existing), minimal repro, expected result, observed result.

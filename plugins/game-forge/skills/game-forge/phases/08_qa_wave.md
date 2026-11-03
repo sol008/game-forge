@@ -38,6 +38,7 @@ The game is played the way a player plays it: real walking, real key presses, th
      - issues found and how they were fixed;
      - remaining concerns.
    - **Discoverability is a bug class.** A required step with no clue fails.
+   - **No-guide pass.** Each unit is first played in `--no-guide` mode: in-game text only (dialogue, quest log, rumours, marks, party talk, stuck offers), no guide, code or screenplay. Record the lowest hint tier that was enough; tier 4 or none is a FAIL.
    - Walk into every point of no return, choose "not yet", and check that the player stays.
    - Spot-check visual clues in the default render mode.
    - Fix in the session's own branch: clue lines, glints, hint tags, NPC pointers (with every translation), wider hit areas. Edit guide *fragments* only, never generated sections.
@@ -53,11 +54,12 @@ The game is played the way a player plays it: real walking, real key presses, th
 5. **3D sweep** (if 3D; 1 local agent, or a cloud session when CPU is short; `briefs/cloud_session.md`).
    - Load every map in the default mode, lite settings.
    - Record for each map: build time, draw calls, triangles, console errors, `warnOnce` keys, billboard fallbacks, NaN bounds and placement outliers.
-   - Produce a screenshot contact sheet.
-   - **Time budget and stop rule:** one full pass, then re-run only the failures plus 10 spot-checks.
+   - Produce a screenshot contact sheet. Darkness-heuristic flags get a visual look before they count: small rooms in a large black frame and title cards read as "dark".
+   - Load the injected-Inf-emitter map and assert no black rectangle (`blueprint/architecture.md` §2.5).
+   - **Time budget and stop rule:** one full pass, then re-run only the failures plus 10 spot-checks. Cap the agent's browser slots (e.g. 2). When the agent fixes something, it **reports the fix at once**, then re-sweeps only the affected maps.
 6. **Point-of-no-return audit** (1 local agent).
    - List every one-way transition: chapter ends, one-way travel, bosses that move the story on, NPCs who leave after a flag, choices that lose an item or a collectible.
-   - Every one that can abandon open content calls the shared warning. The warning names open quests, counts unlit collectibles without spoiling them, and offers go on / not yet.
+   - Every one that can abandon open content calls the shared warning. The warning names every open quest it closes and where it is, counts unlit collectibles without spoiling them, and offers go on / not yet / save first.
    - Every losing choice gets an NPC hint line just before it.
    - Test each prompt both ways.
 7. **Proofreading** (3 local agents by chapter range; `briefs/proofread.md`; CPU-light, so they backfill idle cores). In the source language, check:
@@ -75,6 +77,8 @@ The game is played the way a player plays it: real walking, real key presses, th
    - Run a pixel-diff regression of the source-language screens.
 9. **Screenplay conformance** (1 local agent).
    - Audit `docs/story/cues.json` (extracted by `tools/lint/screenplay.js` from the screenplays' `<!-- cue: -->` lines). Every entry needs a passing assertion in `tools/test/spec_conformance.js` in the **default render mode**: entering scene X plays BGM or ambience Y; "no melody" rules; no minigame on sacred content; the rewards and encounters each scene lists. Add any that phase 4 missed.
+   - **Pose audit.** Grep every screenplay for "lies", "collapses", "asleep", "kneels", "sits", "slumps" (and their translations). Each needs an `S.pose` at that beat, screenshotted in 2D and 3D: in 3D the figure lies along the bed, head on the pillow.
+   - **Transitions.** Every chapter boundary shows its card after the fade-out (the chain's transition frames, C21).
    - Grep the tests for assertions of absence ("no BGM", "no item") that the spec doesn't state, and delete them.
    - A test encodes the spec, never the current behaviour. If code and spec disagree, the code is wrong unless the lead changes the spec and records it.
 10. **Merge** (lead, as each branch lands).
@@ -100,7 +104,7 @@ All automated. Phase 11 refuses to package unless each holds:
 - [ ] 0 unobtainable items, apart from `noSource` items that state a reason.
 - [ ] Every collection set is complete and reachable.
 - [ ] 0 unreachable targets.
-- [ ] 0 discoverability violations.
+- [ ] 0 discoverability violations; every quest has a complete guidance record; the no-guide pass solves every unit at hint tier 3 or lower.
 - [ ] 0 flags read but never set.
 - [ ] Every point of no return that closes content warns, and both choices are tested.
 - [ ] Validator 0 errors and 0 warnings. 0 missing i18n keys (coverage % is informational). 0 measured overflows.
@@ -123,6 +127,8 @@ Human gate: none. G4 follows the QA-wave zip.
 - **Fake soft-locks.** A test fired events while the opening cutscene ran. Wait for the script to be idle.
 - **A suite killed by a timeout.** The ch11 side suite died at the 30-min background limit (it needs 33 min). Set timeouts to at least 2× and split suites to under 20 min.
 - **A sweep with no stop rule** started a needless second full 2-hour pass under software GL.
+- **A verification sweep outran its fix.** The root fix landed in the first hour; the full every-map screenshot sweep on a loaded 4-CPU machine took hours more. Report the fix first, then verify only the affected maps.
+- **False "dark map" flags.** The darkness heuristic flagged small rooms in a large black frame and title cards. Triage flags by eye before filing them.
 - **Hidden warnings.** 15 old validator warnings (dynamic flag names) hid new ones.
 
 ## Time/cost estimate

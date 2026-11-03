@@ -19,6 +19,7 @@ These rules exist because of Shorelight:
   | max-speed | up to the governor limit | anything that would wait |
   | frugal | mostly serial | none unless needed |
 - **Browsers only through `tools/forge/governor.sh -- <cmd>`.** Slots ≈ nproc − 1. Use `--prio` for user-reported bugs.
+- **Cap browser slots per agent** in its brief (e.g. 2 concurrent governor jobs). One sweep agent holding every slot starves the rest of the machine.
 - **Target load** ≈ cores − 0.5.
   - If load is below target and the backlog isn't empty, start the next work package without asking.
   - Backfill CPU-light work (translation, proofreading, docs) into idle capacity.
@@ -62,6 +63,11 @@ Every brief comes from `briefs/` and has:
 - "only claim APIs you can show by file:line".
 
 The lead greps for every API an agent reports before relying on it. One Shorelight agent invented `G.Tiles.warm`.
+
+**Fix first, then verify narrowly.**
+- An agent reports a fix **as soon as it is made** (sha + what changed), before any long verification. The lead can merge and move on.
+- Verification is **time-boxed** and covers only what the fix touched (the affected maps or tests), never a full sweep. A full every-map screenshot sweep on a loaded 4-CPU machine ran for hours after the root fix had landed in the first hour.
+- Heuristic flags (e.g. "map too dark") get a visual look before they become bugs: small rooms in a large black frame and title cards read as "dark".
 
 ## Engine ownership
 One engine owner: the lead or a designated agent. Builders report engine bugs in a fixed format and never patch around them. The owner fixes each bug once and broadcasts "workarounds optional".

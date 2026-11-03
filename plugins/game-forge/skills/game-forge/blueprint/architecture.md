@@ -59,7 +59,7 @@ Lower layers never name anything from higher ones. The engine reaches content on
 
 | Module | Tag | Responsibility |
 |---|---|---|
-| `scene` | G | Stack of `{update, draw, opaque, enter, exit, resume, bgUpdate, statKind, sceneName}`. Only the top updates; drawing starts at the highest opaque scene; `base()` tells the loop which scene decides 2D vs 3D. See shorelight:js/engine/scene.js |
+| `scene` | G | Stack of `{update, draw, opaque, overFade, enter, exit, resume, bgUpdate, statKind, sceneName}`. Only the top updates; drawing starts at the highest opaque scene; the screen fade is drawn **beneath the first `overFade` scene** (§5); `base()` tells the loop which scene decides 2D vs 3D. See shorelight:js/engine/scene.js |
 | `dialog` | G | Portrait box, typewriter, choices, narration, backlog, auto/skip. Speaker names come from a generated name table |
 | `script` | G | `G.Script.run(async S => …)`: the cutscene/event API (§4). A `busy` counter blocks re-entry |
 | `map` | G (top-down) | `MapScene`: tiles, actors, NPCs, events (`auto`/`action`/`touch`), warps, chests, roaming enemies, lighting, camera. The 2D map is the **source of truth** for gameplay even in 3D |
@@ -87,10 +87,10 @@ See shorelight:js/gfx/registry.js.
 
 | Module | Responsibility |
 |---|---|
-| `r3d/core` | WebGL canvas inserted **under** the 2D canvas; both canvases resized in lockstep. Quality presets; composer chain (render → bloom → grade/vignette → output → SMAA); `setView(view)`, `render(dt)`, `project()` world→UI coords; `mergeStatic`; `dispose`. `lite` mode: half resolution, no shadows, no post. Units: 1 unit = 1 tile |
+| `r3d/core` | WebGL canvas inserted **under** the 2D canvas; both canvases resized in lockstep. Quality presets; composer chain (render → **sanitize** → bloom → grade/vignette → output → SMAA, see §2.5); `setView(view)`, `render(dt)`, `project()` world→UI coords; `mergeStatic`; `dispose`. `lite` mode: half resolution, no shadows, no post. Units: 1 unit = 1 tile |
 | `materials` | Shared toon/env materials, cached by params so few shader programs compile |
 | `models` | `Models.define(id, {build(o,K), variants, key, update, lights, occluder, batch})`; a build kit (cached materials, box/cyl/merge helpers). **Billboard fallback**: an id with no 3D model renders its 2D registry art on a camera-facing card, so 3D never blocks on missing assets |
-| `chars` | Procedural or rigged characters built from the same spec as the 2D sprite; sprite billboard fallback |
+| `chars` | Procedural or rigged characters built from the same spec as the 2D sprite; sprite billboard fallback; poses (lie, sit, kneel, slump) and a clamped look-at (§2.5) |
 | `batch` | Instanced batching of repeated static objects per 16×16 chunk (§6). On by default; `?nobatch` turns it off |
 | `mapview` | `Map3D(mapScene)`: ground, walls with camera-side cutaway, water, objects, actors, lights, particles, diorama camera; mirrors the 2D map every frame |
 | `env` | Sky, fog, sun/moon, weather, water; per-map presets |
@@ -99,6 +99,17 @@ See shorelight:js/gfx/registry.js.
 | asset libraries | Content: one file per team (cast, animals, architecture, nature, props, monsters) |
 
 See shorelight:js/r3d/{core,models,batch,mapview}.js.
+
+### 2.5 3D rendering rules [3D]
+
+| Rule | Why |
+|---|---|
+| A **sanitize pass before bloom** turns NaN/Inf into 0 and clamps to a max (e.g. 64) | One NaN/Inf pixel (a specular spike stored as Inf in a half-float target) is smeared by bloom's blur into a screen-sized pure-black rectangle |
+| Keep shader math defined: no `pow` of a possibly negative base (`pow(max(x, 0.0), k)`), `smoothstep` only with edge0 < edge1, no divide by a value that can reach 0 | Each of these yields NaN on some GPUs and feeds the blackout above |
+| Verify the post chain by **injecting an Inf emitter** in a test scene | SwiftShader and headless GL don't reproduce the blackout, so a green headless run proves nothing |
+| GTAO/SSAO G-buffer excludes sprites, billboards and non-depth-writing transparents | Otherwise they write false depth and draw black boxes around lights and particles |
+| Additive bone rotations (look-at, aim) **reset the bones to the animated pose every frame first**, then add the offset | three.js skips rewriting a bone whose keyframe value hasn't changed, so in held poses the offset accumulates and heads spin |
+| Look-at clamps yaw and pitch (e.g. ±60° and ±20°), eases back to neutral, and is off while the actor lies | Unclamped look-at snaps necks backwards; a lying head turning toward the camera reads as broken |
 
 ## 3. Script load order (a parsed contract)
 
@@ -142,7 +153,8 @@ function frame(now) {
     G.Scenes.update(dt); G.PlayStats.tick(raw);                   // stats use the unclamped time
     const base = G.Scenes.base(), use3d = G.R3?.enabled() && base?.view3d;
     G.R3?.show(use3d); G.Render.clear(use3d);                     // transparent 2D over 3D, else black
-    G.Scenes.draw(G.ctx); G.Render.drawOverlays();
+    G.Scenes.draw(G.ctx, G.Render.drawFade);                      // fade goes under the first overFade scene
+    G.Render.drawOverlays();                                      // flash/shake only, never the fade
   } catch (e) { console.error(e); G.lastError = e; }              // tests fail on G.lastError
   G.Input.endFrame();
 }
@@ -156,6 +168,8 @@ The test harness replicates `update` + `draw` with a fixed `dt` (fast-forward), 
 
 - **One gameplay model, two views.** `MapScene` and `BattleScene` own all state, collision and timing. `Map3D`/`Battle3D` read them and draw. Deleting the 3D layer must leave a complete game.
 - **Stacked canvases.** WebGL below, 2D above. In 3D the 2D canvas is cleared to transparent and carries only UI (dialog, HUD, menus, toasts, fades). Fades stay on the 2D overlay so they cover both.
+- **Fade layering.** A global fade drawn over *every* scene hides whatever plays after a fade-out: the chapter ends, the screen goes black, and the chapter card never shows. Scenes that must read over black (title cards, narration, endings) set `overFade`, and the scene stack draws the fade beneath the first such scene. Conformance C21 and the chain's boundary frames check it.
+- **Pose parity.** When the 2D sprite shows an actor lying, sitting, kneeling or slumped, the 3D figure takes the same pose, placed on the furniture (along the bed, head on the pillow). Poses come from an explicit `S.pose` (`content_formats.md` §2), never from a sprite frame alone, and clear when the actor walks.
 - **Every visual hook has both paths.** A scene or map that draws anything must say what happens in 3D:
 
 | Hook | 2D path | 3D path |
@@ -165,6 +179,7 @@ The test harness replicates `update` + `draw` with a fixed `dt` (fast-forward), 
 | Object/actor art | Registry draw | `Models` id, else billboard |
 | Battle action/damage/kill/finish | 2D fx list | `view3d.on…` hooks; `vfx` returns impact time |
 | Emotes, damage numbers, prompts | Drawn at tile coords | Drawn on the 2D canvas at `R3.project()` coords |
+| Actor pose (`S.pose`) | Pose sprite frame | Rig pose, aligned to the furniture it is `on` |
 
 - The validator lists hooks with only one path. The 3D sweep renders every map in `?r3lite` and reports billboard fallbacks and `warnOnce` counts.
 - Test every chapter in the player's **default** render mode (PLAN §7).

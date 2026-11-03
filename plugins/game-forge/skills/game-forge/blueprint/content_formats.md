@@ -110,10 +110,10 @@ NPCs, followers, `if` objects and solidity are rebuilt at script end, on vision 
 | Group | Calls (sketch) | Contract |
 |---|---|---|
 | Dialogue | `say(who, text, o)`, `lines(list, npc)`, `narrate(lines, {veil})`, `choice(opts, {cancel})` → index | `who` is `'id:expr'`, a plain name, or `''` for narration. Lines ≤ 60 chars; markup `{y}…{/}`. `choice` returns the same index for real keys and for autoplay |
-| Screen | `fadeOut/fadeIn(sec)`, `flash`, `shake`, `wait(sec)`, `titleCard(t, sub)`, `particles`, `light(cfg)`, `toast`, `objective(text)` | no `wait` > 1.5 s without text on screen |
+| Screen | `fadeOut/fadeIn(sec)`, `flash`, `shake`, `wait(sec)`, `titleCard(t, sub)`, `particles`, `light(cfg)`, `toast`, `objective(text)` | no `wait` > 1.5 s without text on screen; `titleCard` and `narrate` stay visible after a `fadeOut` (they are `overFade` scenes, `architecture.md` §5) |
 | Audio | `bgm(id \| null, {fade})`, `ambience(id \| null)`, `sfx(id)` | `null` means silence, on purpose; `undefined` is a lint error in scripts |
 | Camera | `camera.pan(x, y, sec)`, `camera.follow(id)`, `camera.hold()` | **auto-release**: at the end of the outermost script the camera returns to the player unless `hold()` was called or an auto event is pending |
-| Actors | `move(id, 'UULD', {speed, wait, ghost})`, `walkTo(id, x, y)`, `face(id, dirOrId)`, `setPos`, `emote`, `show`, `jump`, `fadeActor`, `spawn(def)`, `remove(id)`, `gather()`, `hideFollowers(v)` | every awaited move resolves (including followers, zero steps and blocked steps); `speed` and `ghost` apply to that call only |
+| Actors | `move(id, 'UULD', {speed, wait, ghost})`, `walkTo(id, x, y)`, `face(id, dirOrId)`, `setPos`, `emote`, `show`, `jump`, `fadeActor`, `spawn(def)`, `remove(id)`, `gather()`, `hideFollowers(v)`, `pose(id, 'lie_back' \| 'lie_side' \| 'sit' \| 'kneel' \| 'slump' \| null, {on: objId})` | every awaited move resolves (including followers, zero steps and blocked steps); `speed` and `ghost` apply to that call only; a pose is drawn by **both** the 2D sprite and the 3D figure (lying along the bed, head on the pillow, when `on` is furniture) and clears when the actor walks |
 | State | `flag(k, v)`, `has(k)`, `give(item, n)`, `take`, `hasItem`, `gold(n)`, `join(id, lv)`, `leave(id)`, `learn(id, skill)`, `healParty()`, `quest(id, step \| 'done')`, `collect(questId)`, `chapter(n)`, `vision(sec)` | toasts come from i18n templates built on `CONFIG` names; nothing hard-codes currency or cast |
 | Flow | `warp(map, x, y, dir, {fade, reload})`, `battle(troop, opts)`, `shop(goods, {title})`, `inn(price, {who})`, `travel(from, to, {label})`, `saveMenu()`, `scene(minigame)`, `ending(kind)`, `gameOver()`, `pointOfNoReturn(o)` | `warp` autosaves unless `noSave` |
 
@@ -154,6 +154,12 @@ await G.Story.next(S, 4);
 ```js
 G.Quests.define('q_c3_lost_bell', {
   name: '…', kind: 'side', collectible: true, closes: 'pnr_c3_set_sail',
+  guide: {                                   // the guidance record (rules/discoverability.md D9–D10)
+    where: { map: 'harbor', npc: 'ferryman' }, when: 'night',   // 'any' | 'day' | 'night' | a story phase
+    rumour: '…',                             // shown once the player has entered the area
+    hints: ['riddle…', 'region + NPC…', 'area…', 'exact spot…'],   // 4 tiers, each adds new information
+    area: 'harbor_district',                 // per-area tally key
+  },                                         // closes-at comes from `closes` above
   steps: [
     { text: '…', hint: { npc: 'ferryman' } },
     { text: '…', hint: { map: 'harbor', at: [7, 2], marker: 'tag' } },
@@ -166,7 +172,9 @@ G.Quests.define('q_c3_lost_bell', {
 - `S.collect(questId)` lights `ember_c3_lost_bell` (prefix `CONFIG.collectible.id`, see `config_first.md`) with its animation. It is the **last** beat of the resolution. Collectibles never come from a bare `flag`: Shorelight's ch7/ch8 builders set flags that the ending count never saw.
 - Ending thresholds read `G.Collect.count()` against `CONFIG.collectible.threshold`.
 - `docs/canon/collectibles.json` is the **plan list** (name, chapter, quest id), written in phase 1. It plans at least the threshold plus a slack of 25 % of the threshold (minimum 2). The validator derives each id from its quest and checks the list against the code both ways: every planned collectible has a quest with exactly one `S.collect`, and every `S.collect` is planned.
+- Every guidance UI (collectible panel, quest log, rumours, quest-giver marks, area tallies, party talk, load recap, stuck offer, presets) reads `guide`; none keeps its own text. Build the registry and these readers in phase 2, with the sample chapter, never as a late retrofit.
 - The validator checks that:
+  - every quest has a complete `guide` (where, when, rumour, 4 distinct hint tiers, area), and its map, NPC and area exist;
   - every quest step has a `hint`;
   - every `collectible:true` quest has exactly one `S.collect`;
   - every `q_` id used in scripts is defined, and the reverse;
@@ -210,8 +218,8 @@ G.Enemies.boss('t_c3_tide_king', ['c3_tide_king'], 'sea', 'boss');
 if (!(await S.pointOfNoReturn({ id: 'pnr_c3_set_sail', intro: [['captain', '…']], back: 'D', event: ctx }))) return;
 ```
 - The engine derives what closes from the quest registry (every quest with `closes: 'pnr_c3_set_sail'`), so builders do not repeat the list.
-- **Open** quests are named. Collectibles whose quest was never started are **counted**, not named.
-- Nothing open: return `true` silently. Otherwise ask, with "continue" as option 0. If the player chooses to wait, re-arm `event` and step the player `back`.
+- **Open** quests are named, each with **where** it is (from `guide.where`). Collectibles whose quest was never started are **counted**, not named. The prompt lists everything the point closes, never a bare "no way back".
+- Nothing open: return `true` silently. Otherwise ask, with "continue" as option 0, then "not yet" and "save first" (opens the save menu, then asks again). If the player chooses to wait, re-arm `event` and step the player `back`.
 - Every `oneWay` warp, chapter end, and boss whose win moves the story on must call a pnr. Every pnr is catalogued in `docs/qa/points_of_no_return.md` (id, map, what closes); the validator diffs that catalogue against the code.
 
 ## 8. Discoverability metadata (validator rules)
@@ -221,6 +229,7 @@ if (!(await S.pointOfNoReturn({ id: 'pnr_c3_set_sail', intro: [['captain', '…'
 4. Every missable item or collectible is closed by a catalogued pnr.
 5. BFS reachability over real collision reaches every warp, chest, NPC and quest target from each entry.
 6. Harvestables look different from their decorative twins (a different art id or a `marker:'glint'`).
+7. Every quest and collectible has a complete `guide` record (§4), and every pnr's prompt can name where each quest it closes is.
 
 ## 9. Screenplay → code mapping
 
@@ -231,6 +240,7 @@ if (!(await S.pointOfNoReturn({ id: 'pnr_c3_set_sail', intro: [['captain', '…'
 | "Must not imitate the sacred chant" | ambience only; no song id | the track has no melody voice (music lint) |
 | Numbered beat `角色(表情): 台詞` | `S.say('id:expr', '台詞')` | the beat's line is reached in the chapter test |
 | Movement or camera beat | `S.move`, `S.camera.pan` | after the scene: camera on the player, player on screen |
+| Stage direction "lies", "collapses", "asleep", "kneels", "sits" | `S.pose(id, …)` | the pose holds in 2D **and** 3D (screenshot both); without it the 2D sprite lies in bed while the 3D figure stands in it |
 | Encounters: area, density | `enemies:` plus troops | troop ids exist; roaming count is within the band |
 | Choice with consequences | `S.choice` + flags | each branch is run once (real keys for at least one) |
 | Side quest and its clues | `G.Quests.define` with `hint`s | side-quest walkthrough PASS with no flag writes |

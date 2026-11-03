@@ -25,8 +25,10 @@ Runs in parallel with phase 1 writers and phase 3 designers. **Only the lead edi
    - **hook registries** (battle intro/turn hooks, auto-battle fight hints, 3D arenas, VFX) instead of content monkey-patching the engine;
    - kit and content in separate files (music sequencer vs songs, sprite kit vs cast specs);
    - **i18n has a shared scope plus a per-chapter scope from day 0** (phase 6); chapter entries fill gaps and never override shared ones;
-   - script end restores camera, input and HUD; interaction hit area = the object's full footprint.
-4. **3D layer** (if render mode is 3D): core renderer, materials, model registry with billboard fallback, map view, a **lite mode** for headless tests (`?r3lite`-style), batching on by default with a URL flag to compare. Vendor the 3D library once as a classic script that runs from `file://`.
+   - script end restores camera, input and HUD; interaction hit area = the object's full footprint;
+   - the screen fade is drawn beneath the first `overFade` scene, so title cards and narration show after a fade-out;
+   - **guidance system** (`rules/discoverability.md` D9–D10): the quest `guide` registry and every reader (collectible panel with x/N and the true-ending threshold, quest log, rumours, toggleable quest-giver marks, area tallies, party talk, load recap, stuck offer, explore/standard/guided presets), plus the validator rule. Built now, it costs hours; retrofitted, it cost a day.
+4. **3D layer** (if render mode is 3D): core renderer, materials, model registry with billboard fallback, map view, a **lite mode** for headless tests (`?r3lite`-style), batching on by default with a URL flag to compare. Follow `blueprint/architecture.md` §2.5: a NaN/Inf sanitize pass before bloom, AO that skips sprites and transparents, look-at that resets bones each frame and clamps, and poses that match the 2D sprite. Vendor the 3D library once as a classic script that runs from `file://`.
 4b. **Audio cue stubs.** Build the music sequencer and ambience player. Then give every cue id in `docs/story/cues.json` (extracted from the screenplays' `<!-- cue: -->` lines) a playable placeholder: a simple track, or an ambience bed for "no music, ambience only" scenes. Phase 4's screenplay-conformance assertions (e.g. "this scene plays cue X") then hold from day one. Real compositions arrive in phase 9; the cue ids never change. *(Shorelight: the festival scene's ambience was never built, and a test asserted the silence.)*
 5. **Debug surface** (`blueprint/debug_hooks.md`): jump to map, chapter or battle; autoplay; set flags; lite 3D; no encounters; `scriptIdle()`; terminal-state probe. Tests never need to teleport across a critical path.
 6. **Game contracts** (lead writes; builders and teams read):
@@ -54,7 +56,8 @@ Runs in parallel with phase 1 writers and phase 3 designers. **Only the lead edi
    - re-entering a map without a reload rebuilds per-entry state;
    - dialogue advances on a **real key press** with autoplay off, exactly one page per press;
    - full-footprint interaction for multi-tile objects;
-   - terminal-state detection (every game-over variant, title, no state change for N s).
+   - terminal-state detection (every game-over variant, title, no state change for N s);
+   - a title card after a fade-out is visible (C21); poses and look-at hold steady (C22).
    Run it in the default render mode and in the fallback mode. Sketch of one case:
    ```js
    test('script end releases camera', async (g) => {
@@ -65,7 +68,7 @@ Runs in parallel with phase 1 writers and phase 3 designers. **Only the lead edi
      assert(g.eval(() => G.isOnScreen(G.player)), 'player visible');
    });
    ```
-9. **Sandbox + sample chapter.** A sandbox map and a one-chapter sample that uses every content feature: quest with hints, collectible, point of no return, shop, chest, boss with hooks, a minigame, a multi-tile object, a `[PUZZLE-LANG]` puzzle (its key tagged `// i18n:puzzle`). Its chapter test (real key-press path, `chapterStart`) is the template builders copy.
+9. **Sandbox + sample chapter.** A sandbox map and a one-chapter sample that uses every content feature: quest with hints and a guidance record, collectible, point of no return, shop, chest, boss with hooks, a minigame, a multi-tile object, a `[PUZZLE-LANG]` puzzle (its key tagged `// i18n:puzzle`). Its chapter test (real key-press path, `chapterStart`) is the template builders copy.
 10. **Screen smoke.** Open every menu and screen in every language; fail on any console error.
 11. **Platform spike.** Boot the sandbox from `file://` (and the launcher, if the platform needs one) inside a path with spaces and non-ASCII characters. Packaging itself is phase 11.
 12. **After fan-out: engine bug intake.** Builders and teams report engine bugs in a fixed format (file:line, repro URL, expected vs actual) and never patch the engine. The lead fixes once, adds a conformance case, and broadcasts "fixed in <sha>; workarounds optional".

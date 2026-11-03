@@ -54,6 +54,7 @@ engine is yours. Then make it a check: a validator rule, a unit or e2e test, or 
 ## Time budget and stop rule
 Budget {{BUDGET_MIN}} min. At 75 %: finish the open item, start no new one. At 100 %: commit what is green, report
 PARTIAL with what is left. The same failure at the same step twice is a real bug: report it, don't loop on it.
+Report a fix **as soon as it is made** (sha + what changed), then verify only what it touched, within the budget.
 
 ## Re-run scope
 After a change, re-run only the tests that cover it (failing segment, changed track, touched map), then one final run
